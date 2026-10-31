@@ -1,3 +1,5 @@
+> 历史网页版本构建记录，保留供追溯。当前 Windows 桌面版请看 [开发与构建](../BUILDING.md)。文中的命令均相对于仓库根目录执行。
+
 # FPVFIX / InfinityFree build
 
 Based on official Betaflight Configurator 2026.6.2 (GPL-3.0).

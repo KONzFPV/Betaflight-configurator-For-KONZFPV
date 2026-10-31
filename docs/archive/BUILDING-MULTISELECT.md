@@ -1,3 +1,5 @@
+> 历史网页版本构建记录，保留供追溯。当前 Windows 桌面版请看 [开发与构建](../BUILDING.md)。文中的命令均相对于仓库根目录执行。
+
 # Build this modified 2026.6.2 website
 
 Use Node.js 24 and pnpm 11.25.0. This source snapshot includes pnpm-lock.yaml with the dependency versions used for the delivered website.

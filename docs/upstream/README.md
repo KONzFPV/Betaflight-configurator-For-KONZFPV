@@ -114,7 +114,7 @@ The next versions of the App will be a modern tool that based on PWA (Progressiv
 
 ### Prepare your environment
 
-1. Install [node.js](https://nodejs.org/) (refer to [.nvmrc](./.nvmrc) for minimum required version)
+1. Install [node.js](https://nodejs.org/) (refer to [.nvmrc](../../.nvmrc) for minimum required version)
 
 ### PWA version
 

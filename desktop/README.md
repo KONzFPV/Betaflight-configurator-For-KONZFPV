@@ -1,5 +1,7 @@
 # 空致 KONz Windows 免安装预览版
 
+[文档目录](../docs/README.md) · [开发与构建](../docs/BUILDING.md) · [更新与发布](../docs/UPDATES.md)
+
 基于 Betaflight Configurator 2026.6.2，Electron 45.1.0，Windows x64。当前只生成免安装 ZIP，安装版等待试用反馈。
 
 ## 功能
@@ -45,7 +47,7 @@ route_transport.py 通过 curl_cffi / BoringSSL 发起 HTTPS 并使用 ECH，三
 
 node desktop/package.mjs desktop desktop/electron-runtime desktop/helper/fpvfix-network dist-desktop
 
-输出 dist-desktop/release/KONz-2026.6.2-Preview1-Windows-x64.zip 与 win-unpacked/空致 KONz.exe。保留整个目录，不要只分发 EXE。
+输出 dist-desktop/release/KONz-2026.6.2-Preview9-Windows-x64.zip 与 win-unpacked/空致 KONz.exe。保留整个目录，不要只分发 EXE。
 
 ## 验证
 

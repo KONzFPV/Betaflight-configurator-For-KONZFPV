@@ -1,8 +1,5 @@
-blank_issues_enabled: false
+blank_issues_enabled: true
 contact_links:
-  - name: Configuration and other support questions
-    url: https://github.com/betaflight/betaflight#support-and-developers-channel
-    about: Official Slack chat channel and Facebook group about Betaflight
-  - name: Hardware Issues
-    url: https://github.com/betaflight/betaflight#hardware-issues
-    about: What to do in the case of hardware issues
+  - name: 使用指南与常见操作
+    url: https://github.com/KONzFPV/Betaflight-configurator-For-KONZFPV/blob/main/docs/USAGE.md
+    about: 连接、烧录、备份和软件更新说明
