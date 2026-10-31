@@ -1,0 +1,318 @@
+{
+  "firmwareVersion": "2026.6.2",
+  "configCommit": "3a406c5c30c20d7c3bc7dd5ed547cca961baf0a9",
+  "flags": {
+    "USE_ACCGYRO_BMI270": {
+      "firmware": "https://github.com/betaflight/betaflight/blob/2026.6.2/src/main/drivers/accgyro/accgyro_mpu.c",
+      "file": "src/main/drivers/accgyro/accgyro_mpu.c",
+      "config": "https://github.com/betaflight/config/blob/3a406c5c30c20d7c3bc7dd5ed547cca961baf0a9/configs/AIKO/AIKONF4/config.h",
+      "configCount": 182,
+      "examples": [
+        "configs/AIKO/AIKONF4/config.h",
+        "configs/AIKO/AIKONF4V2/config.h",
+        "configs/AIKO/AIKONF7/config.h"
+      ]
+    },
+    "USE_ACCGYRO_BMI160": {
+      "firmware": "https://github.com/betaflight/betaflight/blob/2026.6.2/src/main/drivers/accgyro/accgyro_mpu.c",
+      "file": "src/main/drivers/accgyro/accgyro_mpu.c",
+      "config": "https://github.com/betaflight/config/blob/3a406c5c30c20d7c3bc7dd5ed547cca961baf0a9/configs/ATRY/ATSTARTF435/config.h",
+      "configCount": 1,
+      "examples": [
+        "configs/ATRY/ATSTARTF435/config.h"
+      ]
+    },
+    "USE_GYRO_SPI_ICM42688P": {
+      "firmware": "https://github.com/betaflight/betaflight/blob/2026.6.2/src/main/drivers/accgyro/accgyro_mpu.c",
+      "file": "src/main/drivers/accgyro/accgyro_mpu.c",
+      "config": "https://github.com/betaflight/config/blob/3a406c5c30c20d7c3bc7dd5ed547cca961baf0a9/configs/AEDR/AEDROXH7/config.h",
+      "configCount": 299,
+      "examples": [
+        "configs/AEDR/AEDROXH7/config.h",
+        "configs/AERO/AEROH7DIGITAL/config.h",
+        "configs/AIKO/AIKONF4V2/config.h"
+      ]
+    },
+    "USE_ACC_SPI_ICM42688P": {
+      "firmware": "https://github.com/betaflight/betaflight/blob/2026.6.2/src/main/sensors/acceleration_init.c",
+      "file": "src/main/sensors/acceleration_init.c",
+      "config": "https://github.com/betaflight/config/blob/3a406c5c30c20d7c3bc7dd5ed547cca961baf0a9/configs/AEDR/AEDROXH7/config.h",
+      "configCount": 299,
+      "examples": [
+        "configs/AEDR/AEDROXH7/config.h",
+        "configs/AERO/AEROH7DIGITAL/config.h",
+        "configs/AIKO/AIKONF4V2/config.h"
+      ]
+    },
+    "USE_GYRO_SPI_ICM42605": {
+      "firmware": "https://github.com/betaflight/betaflight/blob/2026.6.2/src/main/drivers/accgyro/accgyro_mpu.c",
+      "file": "src/main/drivers/accgyro/accgyro_mpu.c",
+      "config": "https://github.com/betaflight/config/blob/3a406c5c30c20d7c3bc7dd5ed547cca961baf0a9/configs/DAFP/DARWINF4SX1280HD/config.h",
+      "configCount": 14,
+      "examples": [
+        "configs/DAFP/DARWINF4SX1280HD/config.h",
+        "configs/DIAT/MAMBAH743/config.h",
+        "configs/GEPR/GEPRCF411SX1280/config.h"
+      ]
+    },
+    "USE_ACC_SPI_ICM42605": {
+      "firmware": "https://github.com/betaflight/betaflight/blob/2026.6.2/src/main/sensors/acceleration_init.c",
+      "file": "src/main/sensors/acceleration_init.c",
+      "config": "https://github.com/betaflight/config/blob/3a406c5c30c20d7c3bc7dd5ed547cca961baf0a9/configs/DAFP/DARWINF4SX1280HD/config.h",
+      "configCount": 14,
+      "examples": [
+        "configs/DAFP/DARWINF4SX1280HD/config.h",
+        "configs/DIAT/MAMBAH743/config.h",
+        "configs/GEPR/GEPRCF411SX1280/config.h"
+      ]
+    },
+    "USE_ACCGYRO_ICM42622P": {
+      "firmware": "https://github.com/betaflight/betaflight/blob/2026.6.2/src/main/drivers/accgyro/accgyro_mpu.c",
+      "file": "src/main/drivers/accgyro/accgyro_mpu.c",
+      "config": "https://github.com/betaflight/config/blob/3a406c5c30c20d7c3bc7dd5ed547cca961baf0a9/configs/BEFH/BETAFPVG473_V2/config.h",
+      "configCount": 2,
+      "examples": [
+        "configs/BEFH/BETAFPVG473_V2/config.h",
+        "configs/BEFH/BETAFPVG473_V3/config.h"
+      ]
+    },
+    "USE_ACCGYRO_ICM42686P": {
+      "firmware": "https://github.com/betaflight/betaflight/blob/2026.6.2/src/main/drivers/accgyro/accgyro_mpu.c",
+      "file": "src/main/drivers/accgyro/accgyro_mpu.c",
+      "config": "https://github.com/betaflight/config/blob/3a406c5c30c20d7c3bc7dd5ed547cca961baf0a9/configs/TEBS/TBS_LUCID_H7/config.h",
+      "configCount": 3,
+      "examples": [
+        "configs/TEBS/TBS_LUCID_H7/config.h",
+        "configs/TEBS/TBS_LUCID_H7_OEM/config.h",
+        "configs/TEBS/TBS_LUCID_H7_V3/config.h"
+      ]
+    },
+    "USE_ACCGYRO_IIM42652": {
+      "firmware": "https://github.com/betaflight/betaflight/blob/2026.6.2/src/main/drivers/accgyro/accgyro_spi_icm426xx.c",
+      "file": "src/main/drivers/accgyro/accgyro_spi_icm426xx.c",
+      "config": "https://github.com/betaflight/config/blob/3a406c5c30c20d7c3bc7dd5ed547cca961baf0a9/configs/SSAK/SAKURAH743/config.h",
+      "configCount": 1,
+      "examples": [
+        "configs/SSAK/SAKURAH743/config.h"
+      ]
+    },
+    "USE_ACCGYRO_IIM42653": {
+      "firmware": "https://github.com/betaflight/betaflight/blob/2026.6.2/src/main/drivers/accgyro/accgyro_mpu.c",
+      "file": "src/main/drivers/accgyro/accgyro_mpu.c",
+      "config": "https://github.com/betaflight/config/blob/3a406c5c30c20d7c3bc7dd5ed547cca961baf0a9/configs/ARKE/ARK_FPV/config.h",
+      "configCount": 2,
+      "examples": [
+        "configs/ARKE/ARK_FPV/config.h",
+        "configs/PRIN/PRINCIPIOTH7PI/config.h"
+      ]
+    },
+    "USE_ACCGYRO_LSM6DSV16X": {
+      "firmware": "https://github.com/betaflight/betaflight/blob/2026.6.2/src/main/drivers/accgyro/accgyro_mpu.c",
+      "file": "src/main/drivers/accgyro/accgyro_mpu.c",
+      "config": "https://github.com/betaflight/config/blob/3a406c5c30c20d7c3bc7dd5ed547cca961baf0a9/configs/AIRB/AIRBOTG4AIO/config.h",
+      "configCount": 7,
+      "examples": [
+        "configs/AIRB/AIRBOTG4AIO/config.h",
+        "configs/AIRB/AIRBOTSUPERF4/config.h",
+        "configs/AIRB/AIRBOTSUPERF4V2/config.h"
+      ]
+    },
+    "USE_ACCGYRO_LSM6DSK320X": {
+      "firmware": "https://github.com/betaflight/betaflight/blob/2026.6.2/src/main/drivers/accgyro/accgyro_mpu.c",
+      "file": "src/main/drivers/accgyro/accgyro_mpu.c",
+      "config": "https://github.com/betaflight/config/blob/3a406c5c30c20d7c3bc7dd5ed547cca961baf0a9/configs/AXFL/AXISFLYINGH743MINI/config.h",
+      "configCount": 74,
+      "examples": [
+        "configs/AXFL/AXISFLYINGH743MINI/config.h",
+        "configs/AXFL/AXISFLYINGH743PRO/config.h",
+        "configs/BEFH/BETAFPVG473_V2/config.h"
+      ]
+    },
+    "USE_ACCGYRO_LSM6DSO": {
+      "firmware": "https://github.com/betaflight/betaflight/blob/2026.6.2/src/main/drivers/accgyro/accgyro_mpu.c",
+      "file": "src/main/drivers/accgyro/accgyro_mpu.c",
+      "config": "https://github.com/betaflight/config/blob/3a406c5c30c20d7c3bc7dd5ed547cca961baf0a9/configs/DAFP/DARWINF4SX1280HD/config.h",
+      "configCount": 4,
+      "examples": [
+        "configs/DAFP/DARWINF4SX1280HD/config.h",
+        "configs/GEPR/GEPRCF411SX1280/config.h",
+        "configs/MADF/MADFLIGHT_FC3/config.h"
+      ]
+    },
+    "USE_ACCGYRO_ICM45686": {
+      "firmware": "https://github.com/betaflight/betaflight/blob/2026.6.2/src/main/drivers/accgyro/accgyro_mpu.c",
+      "file": "src/main/drivers/accgyro/accgyro_mpu.c",
+      "config": "https://github.com/betaflight/config/blob/3a406c5c30c20d7c3bc7dd5ed547cca961baf0a9/configs/LMNR/LUXH743NDAA/config.h",
+      "configCount": 7,
+      "examples": [
+        "configs/LMNR/LUXH743NDAA/config.h",
+        "configs/MADF/MADFLIGHT_FC3/config.h",
+        "configs/SPDX/SPEDIXF405/config.h"
+      ]
+    },
+    "USE_ACCGYRO_ICM45605": {
+      "firmware": "https://github.com/betaflight/betaflight/blob/2026.6.2/src/main/drivers/accgyro/accgyro_mpu.c",
+      "file": "src/main/drivers/accgyro/accgyro_mpu.c",
+      "config": "https://github.com/betaflight/config/blob/3a406c5c30c20d7c3bc7dd5ed547cca961baf0a9/configs/STBE/STELLARH7DEV/config.h",
+      "configCount": 1,
+      "examples": [
+        "configs/STBE/STELLARH7DEV/config.h"
+      ]
+    },
+    "USE_ACCGYRO_ICM56686": {
+      "firmware": "https://github.com/betaflight/betaflight/blob/2026.6.2/src/main/drivers/accgyro/accgyro_mpu.c",
+      "file": "src/main/drivers/accgyro/accgyro_mpu.c",
+      "config": "https://github.com/betaflight/config/blob/3a406c5c30c20d7c3bc7dd5ed547cca961baf0a9/configs/RASP/RASPBERRY_PI_UAVFC/config.h",
+      "configCount": 1,
+      "examples": [
+        "configs/RASP/RASPBERRY_PI_UAVFC/config.h"
+      ]
+    },
+    "USE_BARO_SPA06_003": {
+      "firmware": "https://github.com/betaflight/betaflight/blob/2026.6.2/src/main/sensors/barometer.c",
+      "file": "src/main/sensors/barometer.c",
+      "config": null,
+      "configCount": 0,
+      "examples": []
+    },
+    "USE_BARO_BMP580": {
+      "firmware": "https://github.com/betaflight/betaflight/blob/2026.6.2/src/main/drivers/barometer/barometer_bmp5xx.c",
+      "file": "src/main/drivers/barometer/barometer_bmp5xx.c",
+      "config": null,
+      "configCount": 0,
+      "examples": []
+    },
+    "USE_BARO_SPI_BMP580": {
+      "firmware": "https://github.com/betaflight/betaflight/blob/2026.6.2/src/main/drivers/barometer/barometer_bmp5xx.c",
+      "file": "src/main/drivers/barometer/barometer_bmp5xx.c",
+      "config": null,
+      "configCount": 0,
+      "examples": []
+    },
+    "USE_BARO_BMP581": {
+      "firmware": "https://github.com/betaflight/betaflight/blob/2026.6.2/src/main/drivers/barometer/barometer_bmp5xx.c",
+      "file": "src/main/drivers/barometer/barometer_bmp5xx.c",
+      "config": null,
+      "configCount": 0,
+      "examples": []
+    },
+    "USE_BARO_SPI_BMP581": {
+      "firmware": "https://github.com/betaflight/betaflight/blob/2026.6.2/src/main/drivers/barometer/barometer_bmp5xx.c",
+      "file": "src/main/drivers/barometer/barometer_bmp5xx.c",
+      "config": null,
+      "configCount": 0,
+      "examples": []
+    },
+    "USE_BARO_DPS310": {
+      "firmware": "https://github.com/betaflight/betaflight/blob/2026.6.2/src/main/drivers/barometer/barometer_dps310.c",
+      "file": "src/main/drivers/barometer/barometer_dps310.c",
+      "config": "https://github.com/betaflight/config/blob/3a406c5c30c20d7c3bc7dd5ed547cca961baf0a9/configs/AEDR/AEDROXH7/config.h",
+      "configCount": 284,
+      "examples": [
+        "configs/AEDR/AEDROXH7/config.h",
+        "configs/AERO/AEROH7DIGITAL/config.h",
+        "configs/AIKO/AIKONF4/config.h"
+      ]
+    },
+    "USE_BARO_BMP280": {
+      "firmware": "https://github.com/betaflight/betaflight/blob/2026.6.2/src/main/drivers/barometer/barometer_bmp280.c",
+      "file": "src/main/drivers/barometer/barometer_bmp280.c",
+      "config": "https://github.com/betaflight/config/blob/3a406c5c30c20d7c3bc7dd5ed547cca961baf0a9/configs/AIKO/AIKONF4/config.h",
+      "configCount": 222,
+      "examples": [
+        "configs/AIKO/AIKONF4/config.h",
+        "configs/AIKO/AIKONF4V3/config.h",
+        "configs/AIRB/AG3XF4/config.h"
+      ]
+    },
+    "USE_FLASH_M25P16": {
+      "firmware": "https://github.com/betaflight/betaflight/blob/2026.6.2/src/main/drivers/flash/flash.c",
+      "file": "src/main/drivers/flash/flash.c",
+      "config": "https://github.com/betaflight/config/blob/3a406c5c30c20d7c3bc7dd5ed547cca961baf0a9/configs/AIKO/AIKONF4/config.h",
+      "configCount": 144,
+      "examples": [
+        "configs/AIKO/AIKONF4/config.h",
+        "configs/AIKO/AIKONF7/config.h",
+        "configs/AIRB/AIRBOTF4/config.h"
+      ]
+    },
+    "USE_FLASH_W25Q128FV": {
+      "firmware": "https://github.com/betaflight/betaflight/blob/2026.6.2/src/main/drivers/flash/flash.c",
+      "file": "src/main/drivers/flash/flash.c",
+      "config": "https://github.com/betaflight/config/blob/3a406c5c30c20d7c3bc7dd5ed547cca961baf0a9/configs/AIKO/AIKONF4V2/config.h",
+      "configCount": 293,
+      "examples": [
+        "configs/AIKO/AIKONF4V2/config.h",
+        "configs/AIKO/AIKONF4V3/config.h",
+        "configs/AIRB/AIRBOTF7/config.h"
+      ]
+    },
+    "USE_FLASH_PY25Q128HA": {
+      "firmware": "https://github.com/betaflight/betaflight/blob/2026.6.2/src/main/target/common_post.h",
+      "file": "src/main/target/common_post.h",
+      "config": "https://github.com/betaflight/config/blob/3a406c5c30c20d7c3bc7dd5ed547cca961baf0a9/configs/AXFL/AXISFLYINGH743MINI/config.h",
+      "configCount": 32,
+      "examples": [
+        "configs/AXFL/AXISFLYINGH743MINI/config.h",
+        "configs/AXFL/AXISFLYINGH743PRO/config.h",
+        "configs/AXFL/AXISFLYINGH743PRO_BMI270/config.h"
+      ]
+    },
+    "USE_FLASH_W25N01G": {
+      "firmware": "https://github.com/betaflight/betaflight/blob/2026.6.2/src/main/drivers/flash/flash.c",
+      "file": "src/main/drivers/flash/flash.c",
+      "config": "https://github.com/betaflight/config/blob/3a406c5c30c20d7c3bc7dd5ed547cca961baf0a9/configs/AEDR/AEDROXH7/config.h",
+      "configCount": 55,
+      "examples": [
+        "configs/AEDR/AEDROXH7/config.h",
+        "configs/AFNG/ALIENFLIGHTNGF7/config.h",
+        "configs/BKRC/BAYCK_DOLPHIN/config.h"
+      ]
+    },
+    "USE_FLASH_W25N02K": {
+      "firmware": "https://github.com/betaflight/betaflight/blob/2026.6.2/src/main/drivers/flash/flash.c",
+      "file": "src/main/drivers/flash/flash.c",
+      "config": "https://github.com/betaflight/config/blob/3a406c5c30c20d7c3bc7dd5ed547cca961baf0a9/configs/DAFP/DARWINH7DUAL/config.h",
+      "configCount": 1,
+      "examples": [
+        "configs/DAFP/DARWINH7DUAL/config.h"
+      ]
+    },
+    "USE_FLASH_W25M512": {
+      "firmware": "https://github.com/betaflight/betaflight/blob/2026.6.2/src/main/drivers/flash/flash.c",
+      "file": "src/main/drivers/flash/flash.c",
+      "config": "https://github.com/betaflight/config/blob/3a406c5c30c20d7c3bc7dd5ed547cca961baf0a9/configs/EMAX/EMAX_BABYHAWK_II_HD/config.h",
+      "configCount": 5,
+      "examples": [
+        "configs/EMAX/EMAX_BABYHAWK_II_HD/config.h",
+        "configs/FOSS/FENIX_F405/config.h",
+        "configs/IFRC/IFLIGHT_BLITZ_F435/config.h"
+      ]
+    },
+    "USE_FLASH_W25M02G": {
+      "firmware": "https://github.com/betaflight/betaflight/blob/2026.6.2/src/main/drivers/flash/flash.c",
+      "file": "src/main/drivers/flash/flash.c",
+      "config": "https://github.com/betaflight/config/blob/3a406c5c30c20d7c3bc7dd5ed547cca961baf0a9/configs/STBE/STELLARF4V2/config.h",
+      "configCount": 3,
+      "examples": [
+        "configs/STBE/STELLARF4V2/config.h",
+        "configs/STBE/STELLARH7DEV/config.h",
+        "configs/STBE/STELLARH7V2/config.h"
+      ]
+    },
+    "USE_FLASH_MT29F": {
+      "firmware": "https://github.com/betaflight/betaflight/blob/2026.6.2/src/main/drivers/flash/flash.c",
+      "file": "src/main/drivers/flash/flash.c",
+      "config": null,
+      "configCount": 0,
+      "examples": []
+    },
+    "USE_FLASH_MX66UW1G45G": {
+      "firmware": "https://github.com/betaflight/betaflight/blob/2026.6.2/src/main/drivers/flash/flash.c",
+      "file": "src/main/drivers/flash/flash.c",
+      "config": null,
+      "configCount": 0,
+      "examples": []
+    }
+  }
+}

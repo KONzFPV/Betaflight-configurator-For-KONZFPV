@@ -1,0 +1,13 @@
+DirectoryIndex index.html
+
+<IfModule mod_mime.c>
+    AddType application/wasm .wasm
+    AddType text/javascript .js .mjs
+    AddType application/manifest+json .webmanifest
+</IfModule>
+
+<IfModule mod_headers.c>
+    <FilesMatch "^(index\.html|sw\.js|manifest\.webmanifest|deployment-check\.html)$">
+        Header set Cache-Control "no-cache"
+    </FilesMatch>
+</IfModule>

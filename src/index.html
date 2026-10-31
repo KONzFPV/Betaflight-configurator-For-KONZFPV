@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="zh-CN">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+
+        <script type="module" src="/src/js/utils/common.js"></script>
+        <script type="module" src="/src/js/browserMain.js"></script>
+
+        <title>空致 KONz</title>
+        <meta
+            name="description"
+            content="Configuration and management tool for the Betaflight flight control firmware"
+        />
+        <link rel="icon" type="image/svg+xml" href="/images/fpvfix.svg" />
+        <link rel="apple-touch-icon" href="/images/pwa/apple-touch-icon.png" sizes="128x128" />
+        <meta name="theme-color" content="#eea600" />
+    </head>
+    <body>
+        <!-- Every dialog lives in Vue now (see src/components/dialogs). Do not add markup after
+             <app></app>: it would be parsed as slot content and dropped, since App.vue has no slot. -->
+        <div id="main-wrapper">
+            <app></app>
+        </div>
+    </body>
+</html>

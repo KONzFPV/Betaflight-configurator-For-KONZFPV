@@ -1,0 +1,70 @@
+import groovy.json.JsonSlurper
+import java.time.Year
+
+apply plugin: 'com.android.application'
+
+def appVersion = new JsonSlurper().parseText(file("../../package.json").text).version
+def buildNumberEnv = System.getenv("ANDROID_BUILD_NUMBER")
+def buildNumber = buildNumberEnv?.isInteger() ? buildNumberEnv.toInteger() : 0
+
+android {
+    // namespace stays betaflight.app because the Java sources live in that
+    // package; only applicationId identifies the installed app.
+    namespace = "betaflight.app"
+    compileSdk = rootProject.ext.compileSdkVersion
+    defaultConfig {
+        applicationId "com.betaflight.app.capacitor"
+        minSdk = rootProject.ext.minSdkVersion
+        targetSdk = rootProject.ext.targetSdkVersion
+        // Mirrors the Tauri Android scheme in src-tauri/gen/android/app/build.gradle.kts:
+        // <calendar year>000000 + CI build number, floored at 2026006000, so every
+        // build outranks the last. Valid until 2099 (< 2.1e9 cap).
+        versionCode Math.max(Year.now().value * 1000000, 2026006000) + buildNumber
+        versionName buildNumber > 0 ? "${appVersion}.${buildNumber}" : appVersion
+        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+        aaptOptions {
+             // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
+             // Default: https://android.googlesource.com/platform/frameworks/base/+/282e181b58cf72b6ca770dc7ca5f91f135444502/tools/aapt/AaptAssets.cpp#61
+            ignoreAssetsPattern = '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
+        }
+    }
+    buildTypes {
+        release {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+        }
+    }
+}
+
+repositories {
+    flatDir{
+        dirs '../capacitor-cordova-android-plugins/src/main/libs', 'libs'
+    }
+}
+
+dependencies {
+    implementation fileTree(include: ['*.jar'], dir: 'libs')
+    implementation "androidx.appcompat:appcompat:$androidxAppCompatVersion"
+    implementation "androidx.coordinatorlayout:coordinatorlayout:$androidxCoordinatorLayoutVersion"
+    implementation "androidx.core:core-splashscreen:$coreSplashScreenVersion"
+    implementation 'com.github.mik3y:usb-serial-for-android:3.9.0'
+    implementation 'no.nordicsemi.android:ble:2.11.0'
+    implementation 'androidx.documentfile:documentfile:1.0.1'
+    implementation 'no.nordicsemi.android.support.v18:scanner:1.6.0'
+    implementation project(':capacitor-android')
+    testImplementation "junit:junit:$junitVersion"
+    androidTestImplementation "androidx.test.ext:junit:$androidxJunitVersion"
+    androidTestImplementation "androidx.test.espresso:espresso-core:$androidxEspressoCoreVersion"
+    implementation project(':capacitor-cordova-android-plugins')
+}
+
+apply from: 'capacitor.build.gradle'
+
+try {
+    def servicesJSON = file('google-services.json')
+    if (servicesJSON.text) {
+        apply plugin: 'com.google.gms.google-services'
+    }
+} catch(Exception e) {
+    logger.info("google-services.json not found, google-services plugin not applied. Push Notifications won't work")
+}

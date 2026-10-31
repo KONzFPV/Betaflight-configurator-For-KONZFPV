@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="zh-CN">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>FPVFIX 服务器连接检测</title>
+<style>
+body{font:16px/1.7 system-ui,sans-serif;max-width:48rem;margin:8vh auto;padding:24px;background:#fafafa;color:#202020}
+button{font:inherit;padding:10px 20px;border:0;border-radius:8px;background:#ffbc00;cursor:pointer}
+pre{white-space:pre-wrap;overflow-wrap:anywhere;background:#eee;padding:20px;border-radius:8px}
+a{color:inherit}
+</style>
+<h1>FPVFIX 服务器连接检测</h1>
+<p>检查当前站点能否通过服务器取得官方云编译选项。检测不需要连接飞控。</p>
+<button id="check">开始检测</button>
+<pre id="status" aria-live="polite">等待检测</pre>
+<p><a href="./">返回 FPVFIX BF镜像站</a></p>
+<script>
+const button = document.getElementById('check');
+const status = document.getElementById('status');
+button.addEventListener('click', async () => {
+    button.disabled = true;
+    status.textContent = '正在通过服务器连接官方编译服务……';
+    try {
+        const response = await fetch('./build-api.php?path=/api/options/2026.6.2', {cache:'no-store'});
+        const text = await response.text();
+        let data;
+        try { data = JSON.parse(text); } catch {
+            throw new Error('收到 HTML 页面或无效数据。请确认 PHP 已启用、build-api.php 已上传，并先用浏览器打开本网站完成主机验证。');
+        }
+        if (!response.ok) throw new Error(data.error || ('HTTP ' + response.status));
+        if (response.headers.get('X-Betaflight-Build-Route') !== 'server' || !Array.isArray(data.generalOptions)) {
+            throw new Error('返回内容不是本部署包的服务器接口。请检查上传目录和旧缓存。');
+        }
+        status.textContent = '检测通过：浏览器 → 本站 PHP → 官方云编译服务。\n已获取 2026.6.2 编译选项，可以返回地面站选择目标并请求编译。';
+    } catch (error) {
+        status.textContent = '检测失败：' + error.message;
+    } finally { button.disabled = false; }
+});
+</script>
+</html>

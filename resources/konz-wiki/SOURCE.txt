@@ -1,0 +1,2 @@
+Official Betaflight Wiki snapshot: https://github.com/betaflight/betaflight.com
+Original authors: Betaflight contributors. GPL-3.0. Chinese introductory guides: KONz.

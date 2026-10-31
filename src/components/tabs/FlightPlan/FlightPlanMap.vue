@@ -1,0 +1,528 @@
+<template>
+    <UiBox :title="$t('flightPlanMap')" class="flight-plan-map">
+        <div class="flex flex-wrap gap-3 items-center mb-3">
+            <UButton icon="i-lucide-locate-fixed" :loading="locating" @click="locate">{{ $t("konzLocate") }}</UButton>
+            <span class="text-sm" role="status">{{ $t(locationStatus) }}</span>
+        </div>
+        <div class="flex flex-wrap gap-3 mb-3 items-end">
+            <label class="text-sm"
+                >{{ $t("konzLatitude") }}<UInputNumber v-model="manualLatitude" :min="-90" :max="90" :step="0.000001"
+            /></label>
+            <label class="text-sm"
+                >{{ $t("konzLongitude")
+                }}<UInputNumber v-model="manualLongitude" :min="-180" :max="180" :step="0.000001"
+            /></label>
+            <UButton variant="soft" @click="centerManually">{{ $t("konzCenterCoordinates") }}</UButton>
+        </div>
+        <div class="map-container">
+            <div ref="mapRef" class="map"></div>
+            <div v-if="isLoading" class="map-loading">
+                <div class="loading-message">
+                    {{ $t("flightPlanLoading") }}
+                </div>
+            </div>
+        </div>
+        <div class="map-instructions">
+            <p v-html="$t('flightPlanMapInstructions')"></p>
+        </div>
+    </UiBox>
+</template>
+
+<script setup>
+import { ref, watch, onMounted, onUnmounted } from "vue";
+import { locateMap, validLocation } from "@/utils/mapLocation";
+import UiBox from "@/components/elements/UiBox.vue";
+import { initMap } from "@/js/utils/map";
+import { fromLonLat, toLonLat } from "ol/proj";
+import { Feature } from "ol";
+import { Point, LineString } from "ol/geom";
+import { Vector as LayerVector } from "ol/layer";
+import { Vector as SourceVector } from "ol/source";
+import { Style, Stroke, Circle, Fill, Text } from "ol/style";
+import { DragPan } from "ol/interaction";
+import { useFlightPlan } from "@/composables/useFlightPlan";
+
+const { waypoints, positionalWaypoints, selectedWaypointUid, selectWaypoint, addWaypointAtLocation, updateWaypoint } =
+    useFlightPlan();
+
+// Map renders only positional waypoints (lat/lon meaningful); modifier types
+// have no horizontal position and would otherwise be plotted at (0, 0).
+const sortedWaypoints = positionalWaypoints;
+
+const mapRef = ref(null);
+const mapInstance = ref(null);
+const waypointLayer = ref(null);
+const pathLayer = ref(null);
+const draggingWaypointUid = ref(null);
+const dragPanInteraction = ref(null);
+const isDragging = ref(false);
+const dragStartCoordinate = ref(null);
+const isLoading = ref(true);
+
+// Helper function to initialize map with given coordinates
+const initializeMapAtLocation = (latitude, longitude, logMessage, zoom = 15) => {
+    mapInstance.value = initMap({
+        target: mapRef.value,
+        defaultZoom: zoom,
+        defaultLat: latitude,
+        defaultLon: longitude,
+        defaultLayer: "satellite",
+    });
+
+    console.log(logMessage);
+    setupMapLayers();
+};
+
+const locating = ref(false);
+const locationStatus = ref("konzLocationNotLocated");
+const manualLatitude = ref(0);
+const manualLongitude = ref(0);
+let disposed = false;
+function centerManually() {
+    const point = { latitude: manualLatitude.value, longitude: manualLongitude.value };
+    if (!validLocation(point) || !mapInstance.value) return;
+    mapInstance.value.map
+        .getView()
+        .animate({ center: fromLonLat([point.longitude, point.latitude]), zoom: 15, duration: 300 });
+    locationStatus.value = "konzLocationManual";
+}
+async function locate() {
+    if (locating.value) return;
+    locating.value = true;
+    locationStatus.value = "konzLocating";
+    const result = await locateMap();
+    if (disposed) return;
+    locating.value = false;
+    if (!result) {
+        locationStatus.value = "konzLocationFailed";
+        return;
+    }
+    manualLatitude.value = result.latitude;
+    manualLongitude.value = result.longitude;
+    centerManually();
+    locationStatus.value = result.source === "system" ? "konzLocationSystem" : "konzLocationIp";
+}
+onMounted(() => {
+    if (!mapRef.value) return;
+    initializeMapAtLocation(0, 0, "Map initialized without a location fix", 2);
+    void locate();
+});
+onUnmounted(() => {
+    disposed = true;
+});
+
+// Setup map layers and event handlers
+const setupMapLayers = () => {
+    if (!mapInstance.value) {
+        console.error("Map instance not available");
+        return;
+    }
+
+    // Create path line layer (magenta line) - add first so it renders behind waypoints
+    pathLayer.value = new LayerVector({
+        source: new SourceVector(),
+        style: new Style({
+            stroke: new Stroke({
+                color: "#FF00FF", // Magenta
+                width: 3,
+            }),
+        }),
+    });
+    mapInstance.value.map.addLayer(pathLayer.value);
+
+    // Create waypoint marker layer with numbered circles - add second so it renders on top
+    waypointLayer.value = new LayerVector({
+        source: new SourceVector(),
+    });
+    mapInstance.value.map.addLayer(waypointLayer.value);
+
+    // Get reference to the default DragPan interaction
+    mapInstance.value.map.getInteractions().forEach((interaction) => {
+        if (interaction instanceof DragPan) {
+            dragPanInteraction.value = interaction;
+        }
+    });
+
+    // Manual drag handling using pointer events
+    // Handle pointer down - start dragging
+    mapInstance.value.map.on("pointerdown", (event) => {
+        const feature = mapInstance.value.map.forEachFeatureAtPixel(event.pixel, (feat) => feat, {
+            layerFilter: (layer) => layer === waypointLayer.value,
+        });
+
+        if (feature) {
+            const waypointUid = feature.get("waypointUid");
+            if (waypointUid) {
+                // Prevent default map dragging
+                event.preventDefault();
+
+                // Start dragging this waypoint
+                isDragging.value = true;
+                draggingWaypointUid.value = waypointUid;
+                dragStartCoordinate.value = event.coordinate;
+
+                // Disable map panning
+                if (dragPanInteraction.value) {
+                    dragPanInteraction.value.setActive(false);
+                }
+
+                console.log("Started dragging waypoint:", waypointUid);
+            }
+        }
+    });
+
+    // Handle pointer move - update waypoint position during drag
+    mapInstance.value.map.on("pointermove", (event) => {
+        if (isDragging.value && draggingWaypointUid.value) {
+            // Update the feature position in real-time
+            const waypointSource = waypointLayer.value.getSource();
+            const features = waypointSource.getFeatures();
+            const feature = features.find((f) => f.get("waypointUid") === draggingWaypointUid.value);
+
+            if (feature) {
+                // Update feature geometry
+                feature.getGeometry().setCoordinates(event.coordinate);
+
+                // Update path in real-time
+                updatePathDuringDrag(draggingWaypointUid.value, event.coordinate);
+            }
+        } else {
+            // Update cursor when hovering over waypoints
+            const hit = mapInstance.value.map.hasFeatureAtPixel(event.pixel, {
+                layerFilter: (layer) => layer === waypointLayer.value,
+            });
+            mapInstance.value.map.getTargetElement().style.cursor = hit ? "move" : "";
+        }
+    });
+
+    // Handle pointer up - end dragging
+    mapInstance.value.map.on("pointerup", (event) => {
+        if (isDragging.value && draggingWaypointUid.value) {
+            // Check if we actually moved (using pixel distance for consistent UI behavior)
+            const startPixel = mapInstance.value.map.getPixelFromCoordinate(dragStartCoordinate.value);
+            const endPixel = mapInstance.value.map.getPixelFromCoordinate(event.coordinate);
+            const pixelDistance = Math.sqrt(
+                Math.pow(endPixel[0] - startPixel[0], 2) + Math.pow(endPixel[1] - startPixel[1], 2),
+            );
+
+            if (pixelDistance > 3) {
+                // Moved more than 3 pixels - treat as drag
+                // Get final coordinates
+                const coords = toLonLat(event.coordinate);
+                const latitude = coords[1];
+                const longitude = coords[0];
+
+                console.log("Waypoint dragged to:", latitude, longitude);
+
+                // Update waypoint in state
+                updateWaypoint(draggingWaypointUid.value, {
+                    latitude,
+                    longitude,
+                });
+            } else {
+                // It was just a click - select the waypoint
+                console.log("Waypoint clicked (not dragged):", draggingWaypointUid.value);
+                selectWaypoint(draggingWaypointUid.value);
+
+                // Reset the feature position since we didn't actually drag
+                updateMapFeatures(false); // Don't auto-fit on click
+            }
+
+            // Clean up dragging state
+            isDragging.value = false;
+            draggingWaypointUid.value = null;
+            dragStartCoordinate.value = null;
+
+            // Re-enable map panning
+            if (dragPanInteraction.value) {
+                dragPanInteraction.value.setActive(true);
+            }
+        }
+    });
+
+    // Click handler - add new waypoint when clicking on empty map
+    mapInstance.value.map.on("click", (event) => {
+        // Check if a waypoint marker was clicked
+        const waypointClicked = mapInstance.value.map.hasFeatureAtPixel(event.pixel, {
+            layerFilter: (layer) => layer === waypointLayer.value,
+        });
+
+        // Only add new waypoint if clicking on empty map (not on a waypoint)
+        if (!waypointClicked) {
+            const coords = toLonLat(event.coordinate);
+            const latitude = coords[1];
+            const longitude = coords[0];
+
+            console.log("Map clicked at:", latitude, longitude);
+            addWaypointAtLocation(latitude, longitude);
+        }
+    });
+
+    // Initial map update
+    updateMapFeatures();
+
+    // Map is now ready
+    isLoading.value = false;
+};
+
+// Update path lines during drag in real-time
+const updatePathDuringDrag = (draggingUid, newCoordinates) => {
+    if (!pathLayer.value) {
+        return;
+    }
+
+    const pathSource = pathLayer.value.getSource();
+    pathSource.clear();
+
+    // Build coordinates array with the updated position for the dragging waypoint
+    const coordinates = [];
+    sortedWaypoints.value.forEach((wp) => {
+        let coord;
+        if (wp.uid === draggingUid) {
+            // Use the current dragged position
+            coord = newCoordinates;
+        } else {
+            // Use the stored position
+            coord = fromLonLat([wp.longitude, wp.latitude]);
+        }
+        coordinates.push(coord);
+    });
+
+    // Draw magenta line connecting waypoints
+    if (coordinates.length > 1) {
+        const lineFeature = new Feature({
+            geometry: new LineString(coordinates),
+        });
+        pathSource.addFeature(lineFeature);
+    }
+};
+
+// Update map features when waypoints change
+const updateMapFeatures = (autoFit = true) => {
+    if (!waypointLayer.value || !pathLayer.value) {
+        console.log("Layers not ready yet");
+        return;
+    }
+
+    const waypointSource = waypointLayer.value.getSource();
+    const pathSource = pathLayer.value.getSource();
+
+    // Clear existing features
+    waypointSource.clear();
+    pathSource.clear();
+
+    const sorted = sortedWaypoints.value;
+
+    if (!sorted.length) {
+        console.log("No waypoints to display");
+        return;
+    }
+
+    console.log(`Updating map with ${sorted.length} waypoints`);
+
+    // Add markers for each waypoint with order numbers
+    const coordinates = [];
+    sorted.forEach((wp) => {
+        const coord = fromLonLat([wp.longitude, wp.latitude]);
+        coordinates.push(coord);
+
+        // Create numbered marker
+        const feature = new Feature({
+            geometry: new Point(coord),
+            waypointUid: wp.uid,
+            waypointOrder: wp.order + 1,
+        });
+
+        // Check if this waypoint is selected or being dragged
+        const isSelected = selectedWaypointUid.value === wp.uid;
+        const isBeingDragged = draggingWaypointUid.value === wp.uid;
+
+        // Determine color: green for dragging, orange for selected, blue for normal
+        let fillColor = "#0080FF"; // Blue for normal
+        let radius = 10;
+        let strokeWidth = 2;
+        let fontSize = "bold 12px sans-serif";
+
+        if (isBeingDragged) {
+            fillColor = "#00FF00"; // Green for dragging
+            radius = 16;
+            strokeWidth = 3;
+            fontSize = "bold 14px sans-serif";
+        } else if (isSelected) {
+            fillColor = "#FF8C00"; // Orange for selected
+            radius = 14;
+            strokeWidth = 3;
+            fontSize = "bold 13px sans-serif";
+        }
+
+        // Style with numbered circle
+        feature.setStyle(
+            new Style({
+                image: new Circle({
+                    radius: radius,
+                    fill: new Fill({
+                        color: fillColor,
+                    }),
+                    stroke: new Stroke({
+                        color: "#FFFFFF",
+                        width: strokeWidth,
+                    }),
+                }),
+                text: new Text({
+                    text: String(wp.order + 1),
+                    fill: new Fill({
+                        color: "#FFFFFF",
+                    }),
+                    font: fontSize,
+                }),
+            }),
+        );
+
+        waypointSource.addFeature(feature);
+    });
+
+    // Draw magenta line connecting waypoints in order
+    if (coordinates.length > 1) {
+        const lineFeature = new Feature({
+            geometry: new LineString(coordinates),
+        });
+        pathSource.addFeature(lineFeature);
+        console.log(`Drew path line connecting ${coordinates.length} waypoints`);
+    }
+
+    // Auto-fit map to show all waypoints (only if requested)
+    if (autoFit && coordinates.length > 0) {
+        const extent = waypointSource.getExtent();
+        mapInstance.value.mapView.fit(extent, {
+            padding: [50, 50, 50, 50],
+            maxZoom: 15,
+            duration: 500,
+        });
+        console.log("Map fitted to waypoints");
+    }
+};
+
+// Watch waypoints and update map (don't auto-fit to prevent zoom changes during drag/edit)
+watch(
+    () => waypoints.value,
+    () => updateMapFeatures(false),
+    { deep: true },
+);
+
+// Watch dragging state and update map to show green marker
+watch(
+    () => draggingWaypointUid.value,
+    (newUid) => {
+        if (!mapInstance.value) {
+            return;
+        }
+        // Update map features to show dragging styling (green marker) when drag starts
+        // When newUid is null (drag ended), updateMapFeatures will be called by the update handlers
+        if (newUid) {
+            updateMapFeatures(false); // Don't auto-fit when starting to drag
+        }
+    },
+);
+
+// Watch selected waypoint and update map focus
+watch(
+    () => selectedWaypointUid.value,
+    (selectedUid) => {
+        if (!mapInstance.value || !selectedUid) {
+            return;
+        }
+
+        // Update map features to show selection styling (don't auto-fit)
+        updateMapFeatures(false);
+
+        // Find the selected waypoint and pan to it
+        const selectedWaypoint = sortedWaypoints.value.find((wp) => wp.uid === selectedUid);
+        if (selectedWaypoint) {
+            const coord = fromLonLat([selectedWaypoint.longitude, selectedWaypoint.latitude]);
+
+            // Smoothly animate to the selected waypoint
+            mapInstance.value.mapView.animate({
+                center: coord,
+                duration: 500,
+            });
+
+            console.log("Map centered on selected waypoint:", selectedWaypoint.order + 1);
+        }
+    },
+);
+
+// Cleanup on unmount
+onUnmounted(() => {
+    console.log("Cleaning up map");
+    if (mapInstance.value?.destroy) {
+        mapInstance.value.destroy();
+    }
+});
+</script>
+
+<style scoped>
+.flight-plan-map {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+
+.flight-plan-map :deep(> div:last-child) {
+    flex: 1;
+    min-height: 0;
+}
+
+.map-container {
+    flex: 1;
+    min-height: 480px;
+    border-radius: 4px;
+    overflow: hidden;
+    border: 1px solid var(--surface-500);
+    background: var(--surface-100);
+    position: relative;
+}
+
+.map {
+    width: 100%;
+    height: 100%;
+}
+
+.map-loading {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--surface-100);
+    z-index: 1000;
+}
+
+.loading-message {
+    font-size: 1rem;
+    color: var(--text);
+    font-weight: 500;
+}
+
+.map-instructions {
+    margin-top: 0.5rem;
+    padding: 0.5rem;
+    background: var(--surface-100);
+    border-radius: 4px;
+    font-size: 0.75rem;
+    color: var(--surface-700);
+    text-align: center;
+}
+
+.map-instructions p {
+    margin: 0;
+}
+
+@media (max-width: 1055px) {
+    .map-container {
+        min-height: 320px;
+    }
+}
+</style>

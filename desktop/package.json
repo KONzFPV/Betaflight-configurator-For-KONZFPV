@@ -1,0 +1,9 @@
+{
+  "name": "fpvfix-desktop",
+  "version": "2026.6.2",
+  "description": "FPVFIX Betaflight desktop configurator with Cloudflare transport",
+  "private": true,
+  "type": "module",
+  "license": "GPL-3.0",
+  "devDependencies": {"electron-builder": "26.18.0", "esbuild": "0.25.12"}
+}
