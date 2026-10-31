@@ -19,10 +19,12 @@ test("empty releases and CF failures are not reported as already current",async(
 });
 test("downloading a release marked current remains an explicit user action",async()=>{
  const dir=await mkdtemp(path.join(os.tmpdir(),"konz-update-current-"));const target=path.join(dir,"current.zip");
- try{const current={...manifest,build:9};const updates=new AppUpdates(dir,async job=>job.action==="update-download"?{saved:true}:{...response(current),routeId:2});
+ try{const current={...manifest,build:9};const jobs=[];const updates=new AppUpdates(dir,async job=>{jobs.push(job);if(job.action==="update-download"){await writeFile(job.file,"abc");return {saved:true,routeId:2};}return {...response(current),routeId:2};});
  await updates.check();assert.equal(updates.state.status,"current");let chosen=0;
- await assert.rejects(updates.download("portable",async()=>{chosen++;return target;}));assert.equal(chosen,0);
- updates.state.status="available";await updates.download("portable",async()=>target);
+   const checked = jobs.length;
+   await updates.download("portable",async()=>{chosen++;return target;});
+   assert.equal(jobs.length, checked + 1, "the current release is downloaded only after the user chooses a file destination");
+   assert.equal(chosen,1);
  assert.equal(await readFile(target,"utf8"),"abc");assert.equal(updates.state.usedRouteId,2);
  }finally{await rm(dir,{recursive:true,force:true});}
 });
