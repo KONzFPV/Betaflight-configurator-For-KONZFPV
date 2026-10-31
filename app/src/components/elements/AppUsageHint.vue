@@ -5,7 +5,8 @@
             <p class="text-muted">批量烧录页面启动自动烧录后无法F5刷新软件</p>
             <p class="font-bold text-error">免费软件！禁止倒卖！如若付费购买及时退款！如若遇到BUG请在交流群反馈</p>
         </div>
-        <AppUpdateStatus class="ml-auto" />
+        <DistributionLinks class="ml-auto" />
+        <AppUpdateStatus />
         <UButton size="sm" color="neutral" variant="outline" icon="i-lucide-info" @click="noticeOpen = true"
             >软件说明</UButton
         >
@@ -15,6 +16,7 @@
 <script setup lang="ts">
 import { ref } from "vue";
 import AppUpdateStatus from "./AppUpdateStatus.vue";
+import DistributionLinks from "./DistributionLinks.vue";
 import KonzWelcomeNotice from "../dialogs/KonzWelcomeNotice.vue";
 const noticeOpen = ref(false);
 </script>

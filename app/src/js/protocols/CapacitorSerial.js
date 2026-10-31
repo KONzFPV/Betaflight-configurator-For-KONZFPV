@@ -1,8 +1,8 @@
-import { Capacitor } from "@capacitor/core";
+import { Capacitor, registerPlugin } from "@capacitor/core";
 import { hexStringToUint8Array, uint8ArrayToHexString } from "../utils/bytes.js";
 
 const logHead = "[CAPACITORSERIAL]";
-const BetaflightSerial = Capacitor?.Plugins?.BetaflightSerial;
+const BetaflightSerial = Capacitor.isNativePlatform() ? registerPlugin("BetaflightSerial") : undefined;
 
 /**
  * Capacitor Serial protocol implementation for Android

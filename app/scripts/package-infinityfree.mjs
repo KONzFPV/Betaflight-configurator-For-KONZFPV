@@ -13,7 +13,7 @@ for (const name of ['build-api.php', 'deployment-check.html', '.htaccess']) {
 }
 fs.copyFileSync(path.join(repo, 'LICENSE'), path.join(web, 'LICENSE.txt'));
 fs.writeFileSync(path.join(web, 'BUILD-INFO.json'), JSON.stringify({
-    name:'FPVFIX BF镜像站', version:'2026.6.2', builtAt:new Date().toISOString(),
+    name:'空致 KONz BF地面站', version:'2026.6.2-Preview10', builtAt:new Date().toISOString(),
     upstream:'https://github.com/betaflight/betaflight-configurator/tree/2026.6.2',
     buildRoute:'same-origin PHP -> https://build.betaflight.com',
     modifications:['dual OSD defaults','multiple receiver protocols','download compiled firmware toolbar button',

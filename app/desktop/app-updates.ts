@@ -51,8 +51,11 @@ export class AppUpdates {
         downloading: false,
         progress: 0,
         savedPath: "",
+        routeId: 0,
+        usedRouteId: null,
     };
     private checking = false;
+    private loaded = false;
     constructor(
         private directory: string,
         private request: (job: any) => Promise<any>,
@@ -60,13 +63,31 @@ export class AppUpdates {
     snapshot() {
         return structuredClone(this.state);
     }
+    async setRoute(routeId: number) {
+        if (![0, 1, 2, 3].includes(routeId)) throw new Error("更新线路无效");
+        if (this.checking || this.state.downloading) throw new Error("请等待当前检查或下载结束");
+        await mkdir(this.directory, { recursive: true });
+        await writeFile(path.join(this.directory, "route.json"), JSON.stringify({ routeId }));
+        this.loaded = true;
+        this.state.routeId = routeId;
+        this.state.error = "";
+        return this.snapshot();
+    }
     async check() {
         if (this.checking || this.state.downloading) return this.snapshot();
         this.checking = true;
         this.state.status = "checking";
         this.state.error = "";
         try {
-            const reply = await this.request({ path: "/updates/latest", method: "GET" });
+            if (!this.loaded) {
+                try {
+                    const { routeId } = JSON.parse(await readFile(path.join(this.directory, "route.json"), "utf8"));
+                    if ([0, 1, 2, 3].includes(routeId)) this.state.routeId = routeId;
+                } catch {}
+                this.loaded = true;
+            }
+            const reply = await this.request({ path: "/updates/latest", method: "GET", routeId: this.state.routeId });
+            this.state.usedRouteId = reply.routeId ?? null;
             if (reply.status === 204) {
                 this.state.release = null;
                 this.state.status = "unpublished";
@@ -108,7 +129,7 @@ export class AppUpdates {
         if (this.state.downloading) throw new Error("正在下载更新包");
         const release = this.state.release;
         const item = release?.packages.find((p: any) => p.kind === kind);
-        if (!item || this.state.status !== "available") throw new Error("该版本尚未提供所选更新包");
+        if (!item || !["available", "current"].includes(this.state.status)) throw new Error("该版本尚未提供所选更新包");
         this.state.downloading = true;
         this.state.progress = 0;
         this.state.error = "";
@@ -124,11 +145,13 @@ export class AppUpdates {
                 file: temporary,
                 bytes: item.bytes,
                 sha256: item.sha256,
+                routeId: this.state.routeId,
             });
             if (!reply.saved) throw new Error("下载未完成校验");
             await rename(temporary, target);
             temporary = "";
             this.state.savedPath = target;
+            this.state.usedRouteId = reply.routeId ?? null;
             this.state.progress = 100;
         } catch (e) {
             this.state.error = String(e);

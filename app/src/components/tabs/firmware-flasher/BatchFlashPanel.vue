@@ -158,6 +158,9 @@
                                 "
                             />
                             <p class="text-xs text-muted">{{ slot.progress }}%</p>
+                            <p v-if="slot.timings?.totalMs" class="text-xs text-muted">
+                                总用时 {{ (slot.timings.totalMs / 1000).toFixed(1) }} 秒
+                            </p>
                             <details class="text-xs text-muted">
                                 <summary class="cursor-pointer">查看设备日志</summary>
                                 <pre class="mt-2 max-h-40 overflow-auto whitespace-pre-wrap break-all">{{

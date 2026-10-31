@@ -92,7 +92,7 @@ test("7 devices: at most 5 concurrent writes, queued scans, stop drains, no repe
         assert.equal(batch.state.active, 5);
         assert.equal(max, 5);
         assert.equal(
-            batch.state.slots.every((s) => s.progress === 26),
+            batch.state.slots.every((s) => s.progress >= 20 && s.progress < 70),
             true,
         );
         await assert.rejects(batch.select(firmware));
@@ -144,7 +144,7 @@ test("stop during discovery prevents writes; failed devices do not loop and can 
         assert.equal(writes, 0);
         batch.start(true);
         resolveScan({ code: 0, output: device(1) });
-        await tick();
+        await settle(() => writes === 1);
         assert.equal(writes, 1);
         assert.equal(batch.state.slots[0].result, "error");
         const scan = batch.scan();
@@ -156,7 +156,7 @@ test("stop during discovery prevents writes; failed devices do not loop and can 
         await batch.select(fw);
         batch.start(true);
         resolveScan({ code: 0, output: device(1) });
-        await tick();
+        await settle(() => writes === 2);
         assert.equal(writes, 2);
     } finally {
         batch.stop();

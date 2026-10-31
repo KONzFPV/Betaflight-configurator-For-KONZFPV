@@ -9,6 +9,8 @@
 
 ## 开发与维护
 
+- [网页版与 Android](WEB-ANDROID.md)：InfinityFree 上传包、手机浏览器支持范围、Android APK 构建与签名。
+
 - [开发与构建](BUILDING.md)：Windows 桌面版开发入口、前端构建、网络辅助程序和打包。
 - [仓库结构](REPOSITORY.md)：目录用途及哪些文件由构建工具生成。
 - [更新与发布](UPDATES.md)：GitHub Releases、更新清单和三条 CF Worker。

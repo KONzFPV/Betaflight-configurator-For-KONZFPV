@@ -2,7 +2,7 @@ import { expect, it, vi, afterEach } from "vitest";
 import { createApp, h, nextTick } from "vue";
 import { TooltipProvider } from "reka-ui";
 import { createRouter, createMemoryHistory } from "vue-router";
-const { check, download, dismiss } = vi.hoisted(() => ({ check: vi.fn(), download: vi.fn(), dismiss: vi.fn() }));
+const { check, download, dismiss, selectRoute } = vi.hoisted(() => ({ check: vi.fn(), download: vi.fn(), dismiss: vi.fn(), selectRoute: vi.fn() }));
 vi.mock("../../src/composables/useAppUpdates", async () => {
     const { ref } = await import("vue");
     const state = ref({
@@ -18,8 +18,9 @@ vi.mock("../../src/composables/useAppUpdates", async () => {
             check,
             download,
             dismiss,
+            selectRoute,
             initialize: () => {},
-            available: () => false,
+            available: () => true,
             poll: () => {},
         }),
     };
@@ -49,11 +50,16 @@ it("shows software version/update state and both package choices wired independe
     for (let i = 0; i < 5; i++) await nextTick();
     expect(document.body.textContent).toContain("当前软件版本：Preview9");
     expect(document.body.textContent).toContain("发现新版本 Preview10");
+    expect(document.body.textContent).toContain("更新线路");
     const button = (text) => [...document.querySelectorAll("button")].find((b) => b.textContent.trim() === text);
     button("下载免安装包").click();
     expect(download).toHaveBeenCalledWith("portable");
     button("下载安装包").click();
     expect(download).toHaveBeenCalledWith("installer");
+    button("免安装包下载").click();
+    expect(download).toHaveBeenLastCalledWith("portable");
+    button("安装包下载").click();
+    expect(download).toHaveBeenLastCalledWith("installer");
     button("暂不更新").click();
     expect(dismiss).toHaveBeenCalledOnce();
 });

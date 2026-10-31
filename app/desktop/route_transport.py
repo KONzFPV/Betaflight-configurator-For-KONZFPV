@@ -1,5 +1,6 @@
 """Three fixed CF routes, independent ECH records and sanitized UI status."""
 import hashlib
+import ipaddress
 import os
 import base64
 import concurrent.futures
@@ -23,6 +24,53 @@ LOCK = threading.RLock()
 REFRESH_LOCKS = {key: threading.Lock() for key in GATEWAYS}
 WRITE_LOCK = threading.Lock()
 PROBE_LOCK = threading.Lock()
+CACHE_LOCK = threading.Lock()
+WAKE = threading.Event()
+SHUTDOWN = threading.Event()
+ACTIVE_NETWORK = 0
+TUNING_PAUSED = False
+MANUAL_ROUTE = False
+DNS_RETRY = {key: 0 for key in GATEWAYS}
+EDGE_TTL = 6 * 3600
+EDGE_POOL = ['104.16.0.1', '104.17.0.1', '104.18.0.1', '104.19.0.1']
+CF_NETWORKS = tuple(ipaddress.ip_network(value) for value in (
+    '104.16.0.0/13', '104.24.0.0/14', '172.64.0.0/13', '162.158.0.0/15'))
+
+
+def valid_ip(value):
+    try:
+        address = ipaddress.ip_address(value)
+        return any(address in network for network in CF_NETWORKS)
+    except (ValueError, TypeError):
+        return False
+
+
+def unique_ips(values):
+    return list(dict.fromkeys(value for value in values if valid_ip(value)))[:12]
+
+
+def save_cache():
+    if not CACHE:
+        return
+    try:
+        with CACHE_LOCK:
+            with LOCK:
+                data = json.dumps({'routes': STATE, 'selected': SELECTED})
+            CACHE.parent.mkdir(parents=True, exist_ok=True)
+            temporary = CACHE.with_suffix('.tmp')
+            temporary.write_text(data, encoding='utf-8')
+            os.replace(temporary, CACHE)
+    except OSError:
+        pass
+
+
+def ordered_routes(route_id=0):
+    if type(route_id) is not int or route_id not in (0, 1, 2, 3):
+        raise ValueError('更新线路无效')
+    with LOCK:
+        preferred = route_id or SELECTED
+        return [preferred] + sorted((r for r in GATEWAYS if r != preferred),
+                                    key=lambda r: STATUS[r]['latencyMs'] or 999999)
 
 
 def direct(url, host, ip, ech, method='GET', body=None, headers=None, probe=False):
@@ -32,7 +80,7 @@ def direct(url, host, ip, ech, method='GET', body=None, headers=None, probe=Fals
     with requests.Session(trust_env=False, curl_options=opts) as session:
         return session.request(method, url, data=body, headers=headers or {},
                                impersonate='chrome', timeout=(3, 5) if probe else (5, 25),
-                               allow_redirects=False)
+                               allow_redirects=False, verify=True)
 
 
 def refresh(route):
@@ -41,6 +89,9 @@ def refresh(route):
             current = dict(STATE[route])
         if time.time() - current.get('updated', 0) < 180:
             return
+        if time.time() - DNS_RETRY[route] < 60:
+            return
+        DNS_RETRY[route] = time.time()
         for ip in ['104.16.249.249', '104.16.248.249']:
             try:
                 reply = direct(f'https://cloudflare-dns.com/dns-query?name={GATEWAYS[route]}&type=HTTPS',
@@ -49,20 +100,20 @@ def refresh(route):
                 record = next(x['data'] for x in reply.json()['Answer'] if x['type'] == 65 and 'ech=' in x['data'])
                 ech = re.search(r'ech=([^ ]+)', record)[1]
                 ips = re.search(r'ipv4hint=([^ ]+)', record)[1].split(',')
-                if not ips or not all(re.fullmatch(r'(?:\d{1,3}\.){3}\d{1,3}', x) for x in ips):
+                if not ips or not all(valid_ip(x) for x in ips) or not ech or len(ech) > 2048:
                     continue
                 with LOCK:
-                    STATE[route].update(ech=ech, ips=ips[::-1], updated=time.time())
-                    if CACHE:
-                        CACHE.parent.mkdir(parents=True, exist_ok=True)
-                        CACHE.write_text(json.dumps({'routes': STATE}), encoding='utf-8')
+                    STATE[route].update(ech=ech, dns_ips=ips, updated=time.time())
+                    if not current.get('optimizedAt'):
+                        STATE[route]['ips'] = ips
+                save_cache()
                 return
             except Exception:
                 continue
 
 
 def route_request(route, path, method='GET', body=None, headers=None, probe=False):
-    refresh(route)
+    WAKE.set()
     with LOCK:
         current = dict(STATE[route])
     # A lost POST response may hide an already accepted build; never resubmit it automatically.
@@ -74,9 +125,16 @@ def route_request(route, path, method='GET', body=None, headers=None, probe=Fals
             if len(reply.content) > 20 * 1024 * 1024:
                 raise ValueError('Response is too large')
             if reply.status_code in (502, 503, 504) and method == 'GET':
-                continue
+                raise RuntimeError('Upstream unavailable')
+            if method == 'GET' and ip != current['ips'][0] and reply.status_code < 500:
+                with LOCK:
+                    STATE[route]['ips'] = unique_ips([ip, *STATE[route]['ips']])
+                save_cache()
             return reply
         except Exception:
+            if not probe:
+                with LOCK:
+                    STATE[route]['optimizedAt'] = 0
             continue
     raise RuntimeError('线路暂时无法连接，请重试或选择其他线路')
 
@@ -87,25 +145,97 @@ def snapshot():
 
 
 def probe_route(route):
-    samples = []
+    with LOCK:
+        if TUNING_PAUSED or ACTIVE_NETWORK:
+            return
     refresh(route)
-    for _ in range(2):
-        start = time.monotonic()
+    with LOCK:
+        current = dict(STATE[route])
+    candidates = unique_ips([*current['ips'], *current.get('dns_ips', []), *SEED['ips'], *EDGE_POOL])
+
+    def measure(ip):
+        samples = []
+        for _ in range(2):
+            with LOCK:
+                if TUNING_PAUSED or ACTIVE_NETWORK:
+                    return None
+            start = time.monotonic()
+            try:
+                reply = direct('https://' + GATEWAYS[route] + '/health', GATEWAYS[route], ip, current['ech'], probe=True)
+                data = reply.json()
+                if reply.status_code != 200 or data.get('status') != 'ok' or 'build' not in data.get('features', []):
+                    return None
+                samples.append((time.monotonic() - start) * 1000)
+            except Exception:
+                return None
+        return ip, round(max(samples))
+
+    measured = []
+    with concurrent.futures.ThreadPoolExecutor(max_workers=2) as pool:
+        measured = [item for item in pool.map(measure, candidates) if item]
+    if not measured:
+        with LOCK:
+            if not (TUNING_PAUSED or ACTIVE_NETWORK):
+                STATUS[route].update(available=False, latencyMs=None)
+        return
+    measured.sort(key=lambda item: item[1])
+    # Validate the official read API as well, without ever submitting a build.
+    winner = None
+    for ip, latency in measured[:2]:
+        with LOCK:
+            if TUNING_PAUSED or ACTIVE_NETWORK:
+                return
         try:
-            reply = route_request(route, '/health', probe=True)
-            data = reply.json()
-            if reply.status_code == 200 and data.get('status') == 'ok' and 'build' in data.get('features', []):
-                samples.append(round((time.monotonic() - start) * 1000))
+            reply = direct('https://' + GATEWAYS[route] + '/verify/options', GATEWAYS[route], ip, current['ech'], probe=True)
+            if reply.status_code == 200 and isinstance(reply.json(), (dict, list)):
+                winner = (ip, latency)
+                break
         except Exception:
             pass
+    if not winner:
+        with LOCK:
+            STATUS[route].update(available=False, latencyMs=None)
+        return
     with LOCK:
-        STATUS[route].update(available=bool(samples), latencyMs=round(sum(samples) / len(samples)) if samples else None)
+        if TUNING_PAUSED or ACTIVE_NETWORK:
+            return
+        STATE[route].update(ips=unique_ips([winner[0], *[ip for ip, _ in measured], *current['ips']]), optimizedAt=time.time())
+        STATUS[route].update(available=True, latencyMs=winner[1])
+    save_cache()
+
+
+def background_tuning():
+    global SELECTED
+    SHUTDOWN.wait(2)
+    while not SHUTDOWN.is_set():
+        with LOCK:
+            due = [r for r in GATEWAYS if time.time() - STATE[r].get('optimizedAt', 0) >= EDGE_TTL]
+            paused = TUNING_PAUSED or ACTIVE_NETWORK
+        if due and not paused and PROBE_LOCK.acquire(blocking=False):
+            try:
+                for route in due:
+                    with LOCK:
+                        if TUNING_PAUSED or ACTIVE_NETWORK:
+                            break
+                    probe_route(route)
+                with LOCK:
+                    usable = [s for s in STATUS.values() if s['available']]
+                    if usable and not MANUAL_ROUTE:
+                        SELECTED = min(usable, key=lambda s: s['latencyMs'])['id']
+                save_cache()
+            finally:
+                PROBE_LOCK.release()
+        WAKE.wait(60)
+        WAKE.clear()
+        # A failed network must not trigger a tight retry loop.
+        SHUTDOWN.wait(10)
 
 
 def control(job):
-    global SELECTED
+    global SELECTED, MANUAL_ROUTE
     action = job.get('action')
     if action == 'probe':
+        MANUAL_ROUTE = False
         with PROBE_LOCK:
             with concurrent.futures.ThreadPoolExecutor(max_workers=3) as probes:
                 list(probes.map(probe_route, GATEWAYS))
@@ -113,12 +243,14 @@ def control(job):
                 usable = [value for value in STATUS.values() if value['available']]
                 if usable:
                     SELECTED = min(usable, key=lambda value: value['latencyMs'])['id']
+            save_cache()
     elif action == 'select':
         route = job.get('routeId')
         if type(route) is not int or route not in GATEWAYS:
             raise ValueError('Invalid route')
         with LOCK:
             SELECTED = route
+            MANUAL_ROUTE = True
     elif action != 'status':
         raise ValueError('Unsupported route action')
     return snapshot()
@@ -142,10 +274,8 @@ def download_update(job):
     target = Path(job.get('file', ''))
     if not target.is_absolute() or not str(target).endswith('.konz-download.part'):
         raise ValueError('Invalid download target')
-    with LOCK:
-        routes = [SELECTED] + [r for r in GATEWAYS if r != SELECTED]
+    routes = ordered_routes(job.get('routeId', 0))
     for route in routes:
-        refresh(route)
         with LOCK:
             current = dict(STATE[route])
         for ip in current['ips']:
@@ -157,7 +287,7 @@ def download_update(job):
                 digest, length, notified = hashlib.sha256(), 0, 0
                 with requests.Session(trust_env=False, curl_options=opts) as session:
                     with session.stream('GET', 'https://' + GATEWAYS[route] + route_path,
-                                        impersonate='chrome', timeout=(5, 600), allow_redirects=False) as response:
+                                        impersonate='chrome', timeout=(5, 600), allow_redirects=False, verify=True) as response:
                         if response.status_code != 200:
                             raise RuntimeError('下载线路暂时不可用')
                         with target.open('wb') as output:
@@ -179,8 +309,13 @@ def download_update(job):
     raise RuntimeError('三条CF线路下载失败或更新包校验不一致，请稍后重试')
 
 def handle(job):
+    global ACTIVE_NETWORK, TUNING_PAUSED
     start = time.monotonic()
     result = {'id': job.get('id')}
+    active = not job.get('action') or job.get('action') == 'update-download'
+    with LOCK:
+        TUNING_PAUSED = job.get('pauseTuning') is True
+        ACTIVE_NETWORK += int(active)
     try:
         if job.get('action') == 'update-download':
             result.update(download_update(job))
@@ -202,6 +337,8 @@ def handle(job):
                 alternatives = sorted((key for key in GATEWAYS if key != route),
                                       key=lambda key: STATUS[key]['latencyMs'] or 999999)
             routes = [route, *alternatives] if method == 'GET' else [route]
+            if path == '/updates/latest':
+                routes = ordered_routes(job.get('routeId', 0))
             for candidate in routes:
                 try:
                     reply = route_request(candidate, path, method, body, job.get('headers'))
@@ -213,6 +350,13 @@ def handle(job):
                                        method, body, job.get('headers'))
                     if len(reply.content) > 20 * 1024 * 1024:
                         raise ValueError('Response is too large')
+                    if path == '/updates/latest' and reply.status_code != 200:
+                        if candidate != routes[-1]:
+                            continue
+                    if path == '/updates/latest' and reply.status_code == 200:
+                        content = reply.json()
+                        if not isinstance(content, dict) or not isinstance(content.get('packages'), list):
+                            raise ValueError('更新线路未返回版本清单')
                     result.update(status=reply.status_code,
                                   headers={k: v for k, v in reply.headers.items() if k.lower() in ('content-type', 'retry-after', 'x-fpvfix-route')},
                                   body=base64.b64encode(reply.content).decode(), routeId=candidate)
@@ -224,6 +368,9 @@ def handle(job):
                 raise RuntimeError('连接失败；如已提交编译，请先确认任务状态再重试' if method == 'POST' else '三条线路暂时无法连接，请稍后重试')
     except Exception as error:
         result['error'] = str(error)
+    finally:
+        with LOCK:
+            ACTIVE_NETWORK -= int(active)
     result['seconds'] = round(time.monotonic() - start, 3)
     with WRITE_LOCK:
         print(json.dumps(result, ensure_ascii=True), flush=True)
@@ -237,16 +384,24 @@ def run():
             saved = json.loads(CACHE.read_text(encoding='utf-8'))
             for key in GATEWAYS:
                 item = saved.get('routes', {}).get(str(key), {})
-                if isinstance(item.get('ech'), str) and isinstance(item.get('ips'), list):
-                    STATE[key].update(item)
+                if isinstance(item.get('ech'), str) and len(item['ech']) <= 2048 and isinstance(item.get('ips'), list):
+                    ips = unique_ips(item['ips'])
+                    if ips:
+                        STATE[key].update(ech=item['ech'], ips=ips,
+                                          optimizedAt=min(time.time(), max(0, item.get('optimizedAt', 0)))
+                                          if type(item.get('optimizedAt')) in (int, float) else 0)
+            if saved.get('selected') in GATEWAYS:
+                globals()['SELECTED'] = saved['selected']
         except Exception:
             pass
+    threading.Thread(target=background_tuning, daemon=True).start()
     with concurrent.futures.ThreadPoolExecutor(max_workers=6) as pool:
         for line in sys.stdin:
             try:
                 pool.submit(handle, json.loads(line))
             except Exception:
                 continue
+    SHUTDOWN.set()
 
 
 if __name__ == '__main__':

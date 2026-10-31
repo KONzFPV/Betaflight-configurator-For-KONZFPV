@@ -3,6 +3,7 @@ import { createHash } from "node:crypto";
 import { readFile, writeFile, mkdir, mkdtemp, rm, appendFile } from "node:fs/promises";
 import path from "node:path";
 import { flashLayout } from "./dfu-memory";
+import { dfusePlan, BatchProgress } from "./dfuse-plan";
 
 export function firmwareBinary(data: Buffer, extension: string): Buffer {
     if (extension === ".bin") {
@@ -220,10 +221,31 @@ export class BatchFlasher {
         Object.assign(slot, { serial: device.serial, progress: 0, status: "擦除并写入中", logs: [], result: "busy" });
         this.state.active++;
         let temp = "";
+        const started = Date.now();
+        slot.timings = {};
         try {
             const layout = flashLayout(device.layout);
             if (this.state.firmware.bytes > layout.bytes) throw new Error("固件超出该设备内部 Flash 容量，未写入");
             temp = await mkdtemp(path.join(this.cache, "verify-"));
+            const expected = await readFile(this.firmwarePath);
+            const plan = dfusePlan(expected, device.layout, device.id);
+            let downloadFile = this.firmwarePath;
+            if (plan) {
+                downloadFile = path.join(temp, "page-plan.dfu");
+                await writeFile(downloadFile, plan.file);
+                slot.logs.push(
+                    `按 ${plan.elements} 个擦除页写入，省去 ${plan.skippedBytes} 字节空白传输；仍完整校验 ${expected.length} 字节`,
+                );
+            }
+            const appendLog = (text: string) => {
+                slot.logs.push(...text.split(/[\r\n]+/).filter(Boolean));
+                slot.logs = slot.logs.slice(-100);
+            };
+            const progress = new BatchProgress(plan?.elements ?? 0, (phase, percent) => {
+                slot.status = phase;
+                slot.progress = Math.max(slot.progress, Math.min(70, percent));
+            });
+            const writingStarted = Date.now();
             const response = await this.runner(
                 this.exe,
                 [
@@ -236,40 +258,43 @@ export class BatchFlasher {
                     "-a",
                     "0",
                     "-D",
-                    this.firmwarePath,
-                    "-s",
-                    "0x08000000",
+                    downloadFile,
+                    ...(plan ? [] : ["-s", "0x08000000"]),
                 ],
                 (text: string) => {
-                    slot.logs.push(...text.split(/[\r\n]+/).filter(Boolean));
-                    slot.logs = slot.logs.slice(-60);
-                    const percentages = [...text.matchAll(/(\d+)%/g)];
-                    if (percentages.length)
-                        slot.progress = Math.min(49, Math.floor(Number(percentages.at(-1)![1]) / 2));
+                    appendLog(text);
+                    progress.consume(text);
                 },
             );
+            slot.timings.eraseAndWriteMs = Date.now() - writingStarted;
             if (response.code !== 0 || response.timedOut)
                 throw new Error(response.timedOut ? "烧录超时，请检查设备" : "烧录失败，退出码 " + response.code);
             slot.status = "读取 Flash 并逐字节校验";
-            slot.progress = 50;
+            slot.progress = 70;
+            const verifyingStarted = Date.now();
             const verifyFile = path.join(temp, "verify.bin");
             const selectors = ["-d", device.id, "-S", device.serial, "-p", device.path, "-a", "0"];
             const readback = await this.runner(
                 this.exe,
                 [...selectors, "-s", `0x08000000:${this.state.firmware.bytes}`, "-U", verifyFile],
                 (text: string) => {
-                    slot.logs.push(...text.split(/[\r\n]+/).filter(Boolean));
+                    appendLog(text);
                     const percent = [...text.matchAll(/(\d+)%/g)].at(-1);
-                    if (percent) slot.progress = 50 + Math.min(49, Math.floor(Number(percent[1]) / 2));
+                    if (percent)
+                        slot.progress = Math.max(
+                            slot.progress,
+                            70 + Math.min(29, Math.floor(Number(percent[1]) * 0.29)),
+                        );
                 },
             );
             if (readback.code !== 0 || readback.timedOut)
                 throw new Error("写后读取校验失败：" + readback.output.slice(-800));
             const actual = await readFile(verifyFile);
-            const expected = await readFile(this.firmwarePath);
             if (!expected.equals(actual)) throw new Error("读回数据与固件不一致（包括配置区域），请勿视为烧录成功");
+            slot.timings.verifyMs = Date.now() - verifyingStarted;
             slot.logs.push("完整读回校验一致，SHA-256: " + createHash("sha256").update(actual).digest("hex"));
             slot.status = "写入并校验完成，正在退出 DFU";
+            const leavingStarted = Date.now();
             const leave = await this.runner(
                 this.exe,
                 [...selectors, "-s", ":leave"],
@@ -277,6 +302,7 @@ export class BatchFlasher {
                 15000,
             );
             slot.progress = 100;
+            slot.timings.leaveMs = Date.now() - leavingStarted;
             slot.result = leave.code === 0 && !leave.timedOut ? "success" : "warning";
             slot.status = slot.result === "success" ? "写入并校验完成" : "写入校验成功；退出 DFU 未确认，请手动重插";
         } catch (error) {
@@ -284,6 +310,10 @@ export class BatchFlasher {
             slot.status = String(error);
             slot.logs.push(String(error));
         } finally {
+            slot.timings.totalMs = Date.now() - started;
+            slot.logs.push(
+                `用时：擦除及写入 ${((slot.timings.eraseAndWriteMs ?? 0) / 1000).toFixed(1)} 秒，完整校验 ${((slot.timings.verifyMs ?? 0) / 1000).toFixed(1)} 秒，总计 ${(slot.timings.totalMs / 1000).toFixed(1)} 秒`,
+            );
             await appendFile(
                 path.join(this.cache, "device-logs.ndjson"),
                 JSON.stringify({ at: new Date().toISOString(), device, ...slot }) + "\n",

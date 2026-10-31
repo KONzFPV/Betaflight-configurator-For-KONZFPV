@@ -13,14 +13,14 @@ android {
     namespace = "betaflight.app"
     compileSdk = rootProject.ext.compileSdkVersion
     defaultConfig {
-        applicationId "com.betaflight.app.capacitor"
+        applicationId "com.konz.configurator.android"
         minSdk = rootProject.ext.minSdkVersion
         targetSdk = rootProject.ext.targetSdkVersion
         // Mirrors the Tauri Android scheme in src-tauri/gen/android/app/build.gradle.kts:
         // <calendar year>000000 + CI build number, floored at 2026006000, so every
         // build outranks the last. Valid until 2099 (< 2.1e9 cap).
         versionCode Math.max(Year.now().value * 1000000, 2026006000) + buildNumber
-        versionName buildNumber > 0 ? "${appVersion}.${buildNumber}" : appVersion
+        versionName "${appVersion}-Preview10"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
@@ -28,8 +28,20 @@ android {
             ignoreAssetsPattern = '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
         }
     }
+    signingConfigs {
+        konz {
+            if (System.getenv("KONZ_KEYSTORE")) {
+                storeFile file(System.getenv("KONZ_KEYSTORE"))
+                storePassword System.getenv("KONZ_KEYSTORE_PASSWORD")
+                keyAlias "konz"
+                keyPassword System.getenv("KONZ_KEYSTORE_PASSWORD")
+                storeType "PKCS12"
+            }
+        }
+    }
     buildTypes {
         release {
+            if (System.getenv("KONZ_KEYSTORE")) signingConfig signingConfigs.konz
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }

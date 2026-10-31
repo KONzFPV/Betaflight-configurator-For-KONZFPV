@@ -28,10 +28,28 @@ export function useAppUpdates() {
     }
     async function download(kind: string) {
         try {
+            if (!state.value.release || state.value.status === "error") await check();
             await invoke("download", { kind });
         } catch (e) {
             state.value.error = String(e);
         }
     }
-    return { state, check, initialize, dismiss, download, poll: () => invoke("status"), available: () => !!api() };
+    async function selectRoute(routeId: number) {
+        try {
+            await invoke("route", { routeId });
+            await check();
+        } catch (e) {
+            state.value.error = String(e);
+        }
+    }
+    return {
+        state,
+        check,
+        initialize,
+        dismiss,
+        download,
+        selectRoute,
+        poll: () => invoke("status"),
+        available: () => !!api(),
+    };
 }

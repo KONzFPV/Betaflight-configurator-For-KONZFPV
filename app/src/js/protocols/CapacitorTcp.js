@@ -1,8 +1,8 @@
-import { Capacitor } from "@capacitor/core";
+import { Capacitor, registerPlugin } from "@capacitor/core";
 import { base64ToUint8Array, uint8ArrayToBase64 } from "../utils/bytes.js";
 import { bracketHost, unbracketHost } from "../utils/host.js";
 
-const BetaflightTcp = Capacitor?.Plugins?.BetaflightTcp;
+const BetaflightTcp = Capacitor.isNativePlatform() ? registerPlugin("BetaflightTcp") : undefined;
 
 class CapacitorTcp extends EventTarget {
     constructor() {

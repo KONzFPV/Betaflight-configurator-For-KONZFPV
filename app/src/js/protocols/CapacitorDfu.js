@@ -1,8 +1,8 @@
-import { Capacitor } from "@capacitor/core";
+import { Capacitor, registerPlugin } from "@capacitor/core";
 import { hexStringToUint8Array, uint8ArrayToHexString } from "../utils/bytes.js";
 
 const logHead = "[CAPACITOR DFU]";
-const BetaflightDfu = Capacitor?.Plugins?.BetaflightDfu;
+const BetaflightDfu = Capacitor.isNativePlatform() ? registerPlugin("BetaflightDfu") : undefined;
 
 /**
  * Capacitor DFU protocol adapter for Android.

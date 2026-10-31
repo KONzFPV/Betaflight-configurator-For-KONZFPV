@@ -40,6 +40,7 @@
 | 下载、连接飞控、备份和烧录 | [使用指南](docs/USAGE.md) |
 | 找说明或了解文件放在哪里 | [文档目录](docs/README.md) · [仓库结构](docs/REPOSITORY.md) |
 | 修改代码、构建 Windows 版 | [开发与构建](docs/BUILDING.md) |
+| 部署手机 / 电脑网页版、构建 Android APK | [网页版与 Android](docs/WEB-ANDROID.md) |
 | 发布 GitHub Release、部署 CF 更新 | [更新与发布](docs/UPDATES.md) |
 | 查阅上游和早期网页版本 | [上游资料](docs/upstream/README.md) · [历史记录](docs/archive/README.md) |
 

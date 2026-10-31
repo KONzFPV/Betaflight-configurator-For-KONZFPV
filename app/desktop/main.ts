@@ -103,6 +103,7 @@ function helperNetwork(job: any) {
                 method: job.method || "GET",
                 headers,
                 body: job.body,
+                pauseTuning: !!(batch.state.active || backup.state.busy || singleFlashBusy),
             }) + "\n",
         );
     });
@@ -263,6 +264,7 @@ if (primary)
                 if (job?.action === "status") return updates.snapshot();
                 if (job?.action === "check") return updates.check();
                 if (job?.action === "acknowledge") return updates.acknowledge();
+                if (job?.action === "route") return updates.setRoute(job.routeId);
                 if (job?.action === "download")
                     return updates.download(job.kind, async (name) => {
                         const result = await dialog.showSaveDialog(mainWindow, {

@@ -1,4 +1,5 @@
 import "../components/init.js";
+import "./mobileNetwork";
 import { gui_log } from "./gui_log.js";
 import { i18n } from "./localization.js";
 import GUI from "./gui.js";

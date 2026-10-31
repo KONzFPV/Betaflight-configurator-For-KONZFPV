@@ -1,5 +1,5 @@
 {
-  "appId": "com.betaflight.app.capacitor",
-  "appName": "Betaflight App",
+  "appId": "com.konz.configurator.android",
+  "appName": "空致 KONz",
   "webDir": "src/dist"
 }

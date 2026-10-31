@@ -1,7 +1,7 @@
-import { Capacitor } from "@capacitor/core";
+import { Capacitor, registerPlugin } from "@capacitor/core";
 
 const logHead = "[CAPACITORFILE]";
-const BetaflightFile = Capacitor?.Plugins?.BetaflightFile;
+const BetaflightFile = Capacitor.isNativePlatform() ? registerPlugin("BetaflightFile") : undefined;
 
 /**
  * Capacitor File protocol implementation for Android.
