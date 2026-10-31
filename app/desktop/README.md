@@ -1,6 +1,6 @@
 # 空致 KONz Windows 免安装预览版
 
-[文档目录](../docs/README.md) · [开发与构建](../docs/BUILDING.md) · [更新与发布](../docs/UPDATES.md)
+[文档目录](../../docs/README.md) · [开发与构建](../../docs/BUILDING.md) · [更新与发布](../../docs/UPDATES.md)
 
 基于 Betaflight Configurator 2026.6.2，Electron 45.1.0，Windows x64。当前只生成免安装 ZIP，安装版等待试用反馈。
 
@@ -30,6 +30,8 @@ route_transport.py 通过 curl_cffi / BoringSSL 发起 HTTPS 并使用 ECH，三
 网络可达性依赖客户网络与 CF ECH。三条线路仍共享 CF 平台，不等于三个完全独立的运营商链路；隐藏客户端入口地址也不构成鉴权或防攻击机制。
 
 ## 重建
+
+从仓库根目录先执行 cd app，以下命令均相对于 app/。
 
 开发需要 Node 24、pnpm 11.25、Python 3.12。客户使用成品不需这些工具，不需 .NET / WebView2。
 

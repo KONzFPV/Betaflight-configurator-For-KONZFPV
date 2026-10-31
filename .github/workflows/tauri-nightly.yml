@@ -54,6 +54,13 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v5
 
+      - name: Prepare application workspace
+        shell: bash
+        run: |
+          if [ -f app/package.json ]; then
+            cp -a app/. .
+          fi
+
       - name: Compute metadata
         id: meta
         run: |
@@ -92,6 +99,13 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v5
+
+      - name: Prepare application workspace
+        shell: bash
+        run: |
+          if [ -f app/package.json ]; then
+            cp -a app/. .
+          fi
 
       - name: Setup Node
         uses: actions/setup-node@v5
@@ -249,6 +263,13 @@ jobs:
         with:
           persist-credentials: false
 
+      - name: Prepare application workspace
+        shell: bash
+        run: |
+          if [ -f app/package.json ]; then
+            cp -a app/. .
+          fi
+
       - name: Setup Node
         uses: actions/setup-node@v5
         with:
@@ -343,6 +364,13 @@ jobs:
         uses: actions/checkout@v5
         with:
           persist-credentials: false
+
+      - name: Prepare application workspace
+        shell: bash
+        run: |
+          if [ -f app/package.json ]; then
+            cp -a app/. .
+          fi
 
       - name: Setup Node
         uses: actions/setup-node@v5
@@ -468,6 +496,13 @@ jobs:
         with:
           persist-credentials: false
 
+      - name: Prepare application workspace
+        shell: bash
+        run: |
+          if [ -f app/package.json ]; then
+            cp -a app/. .
+          fi
+
       - name: Select Xcode 26 (iOS 26 SDK)
         uses: maxim-lobanov/setup-xcode@ed7a3b1fda3918c0306d1b724322adc0b8cc0a90 # v1
         with:
@@ -582,6 +617,13 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v5
+
+      - name: Prepare application workspace
+        shell: bash
+        run: |
+          if [ -f app/package.json ]; then
+            cp -a app/. .
+          fi
 
       - name: Setup Node
         uses: actions/setup-node@v5

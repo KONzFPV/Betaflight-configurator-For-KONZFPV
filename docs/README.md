@@ -19,4 +19,4 @@
 
 - [上游 README](upstream/README.md)：保留的 Betaflight 原始介绍与开发资料。
 - [历史网页构建记录](archive/README.md)：早期网页部署记录，区别于当前 Windows 版构建。
-- [许可证](../LICENSE)：GPL-3.0；第三方许可见 [desktop/licenses](../desktop/licenses)。
+- [许可证](../LICENSE)：GPL-3.0；第三方许可见 [desktop/licenses](../app/desktop/licenses)。

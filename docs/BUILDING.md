@@ -2,20 +2,21 @@
 
 [返回文档目录](README.md) · [更新与发布](UPDATES.md)
 
-以下命令均在仓库根目录执行。当前定制 Windows 版使用 Electron，入口在 desktop/；上游 Tauri / Android 工程另行保留。
+克隆仓库后，先在仓库根目录执行 cd app。以下开发命令均在 app/ 目录执行。当前定制 Windows 版使用 Electron，入口在 desktop/；上游 Tauri / Android 工程另行保留。
 
 ## 环境与前端
 
 使用 Node.js 24、pnpm 11.25。Python 网络辅助程序使用 Python 3.12。客户运行成品无需安装这些工具。
 
 ~~~powershell
+cd app
 pnpm install --frozen-lockfile
 pnpm exec vite build
 ~~~
 
 前端输出为 src/dist。Vite 会读取 Git 提交信息，应在正常 Git checkout 中构建。
 
-前端测试使用 pnpm exec vitest run，可传入相关测试文件；桌面层的测试、辅助程序构建与隔离验证参数见 [桌面工程说明](../desktop/README.md)。
+前端测试使用 pnpm exec vitest run，可传入相关测试文件；桌面层的测试、辅助程序构建与隔离验证参数见 [桌面工程说明](../app/desktop/README.md)。
 
 ## Windows 桌面包
 
@@ -28,7 +29,7 @@ pnpm exec vite build
 node desktop/package.mjs <打包工具目录> <Electron运行时目录> <网络辅助程序目录> <输出目录>
 ~~~
 
-网络辅助程序目录应包含 fpvfix-network.exe 及其依赖。具体 PyInstaller 命令与目录示例见 [桌面工程说明](../desktop/README.md)。
+网络辅助程序目录应包含 fpvfix-network.exe 及其依赖。具体 PyInstaller 命令与目录示例见 [桌面工程说明](../app/desktop/README.md)。
 
 打包输出位于指定目录的 release/ 下。分发完整 ZIP，不能只取主 EXE；不完整解压会导致启动时无法读取 ICU 等运行时资源。
 

@@ -1,3 +1,5 @@
+> 此仓库的应用工程位于 app/。以下开发步骤在 app/ 目录执行，文中的项目根目录指 app/。
+
 # WebAuthn Development Setup
 
 This guide will help you set up your development environment to test WebAuthn (passkey) authentication features in the Betaflight App.

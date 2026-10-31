@@ -27,6 +27,12 @@
 
 备份范围、设备连接、参数恢复及烧录注意事项见 [使用指南](docs/USAGE.md)。软件更新需部署 CF Worker，发布步骤见 [更新与发布](docs/UPDATES.md)。
 
+## 仓库导航
+
+- **[app/](app/)**：完整源码、依赖配置及平台工程，开发前先进入此目录。
+- **[docs/](docs/README.md)**：使用、构建和更新发布说明。
+- **[Releases](https://github.com/KONzFPV/Betaflight-configurator-For-KONZFPV/releases/latest)**：客户下载包与对应源码归档。
+
 ## 按需查阅
 
 | 我想做什么 | 入口 |

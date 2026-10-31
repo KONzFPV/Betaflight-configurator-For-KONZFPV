@@ -18,6 +18,13 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
+      - name: Prepare application workspace
+        shell: bash
+        run: |
+          if [ -f app/package.json ]; then
+            cp -a app/. .
+          fi
+
       - name: Install Node.js
         uses: actions/setup-node@v5
         with:

@@ -60,6 +60,13 @@ jobs:
           persist-credentials: false  # Don't persist GitHub token
           allow-unsafe-pr-checkout: true  # checkout@v5 fork-checkout gate; job is contents:read, no secrets
 
+      - name: Prepare application workspace
+        shell: bash
+        run: |
+          if [ -f app/package.json ]; then
+            cp -a app/. .
+          fi
+
       - name: Cache node_modules
         uses: actions/cache@v4
         with:

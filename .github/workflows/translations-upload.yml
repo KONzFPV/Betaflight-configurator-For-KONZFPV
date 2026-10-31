@@ -8,7 +8,7 @@ on:
     branches:
       - master
     paths:
-      - 'locales/en/**'
+      - 'app/locales/en/**'
 
 jobs:
   betaflight-messages-to-crowdin:
@@ -25,7 +25,7 @@ jobs:
       with:
         project_id: ${{ secrets.CROWDIN_PROJECT_ID }}
         token: ${{ secrets.CROWDIN_PERSONAL_TOKEN }}
-        config: 'crowdin.yml'
+        config: '.github/crowdin.yml'
         crowdin_branch_name: ${{ github.ref_name }}
 
         upload_sources: true

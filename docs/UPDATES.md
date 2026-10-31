@@ -1,6 +1,8 @@
 # GitHub Releases + 三条CF更新部署
 日期：2026-10-31。仓库已固定为 https://github.com/KONzFPV/Betaflight-configurator-For-KONZFPV 。此文档用于维护者发布版本和部署三条CF更新路由。GitHub Release发布与CF Worker部署是两个独立步骤，发布后应分别核验。
 
+仓库源码已集中到 app/。本文中的 desktop/ 路径和命令均相对于 app/，执行命令前先从仓库根目录进入 app/。
+
 ## 客户端已完成
 - 首页和已连接设置页共用AppUsageHint右侧，显示软件Preview9及更新状态；固件版本2026.6.2单独保留。
 - 启动时查更新，可手动再次检查；最新build大于当前build才视为新版本。

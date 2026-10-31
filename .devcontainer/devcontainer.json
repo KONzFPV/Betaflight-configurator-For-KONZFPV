@@ -5,6 +5,7 @@
     "context": "."
   },
   "remoteUser": "devpod",
+  "workspaceFolder": "/workspaces/${localWorkspaceFolderBasename}/app",
   "features": {},
 
   // USB device access (optional — uncomment for serial/DFU access to flight controllers)

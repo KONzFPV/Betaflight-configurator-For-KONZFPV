@@ -47,6 +47,13 @@ jobs:
           ref: ${{ github.event.release.tag_name || github.ref }}
           persist-credentials: false
 
+      - name: Prepare application workspace
+        shell: bash
+        run: |
+          if [ -f app/package.json ]; then
+            cp -a app/. .
+          fi
+
       - name: Select Xcode 26 (iOS 26 SDK)
         uses: maxim-lobanov/setup-xcode@ed7a3b1fda3918c0306d1b724322adc0b8cc0a90 # v1
         with:

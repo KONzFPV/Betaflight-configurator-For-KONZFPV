@@ -1,3 +1,5 @@
+> 保留的上游资料。此仓库已将完整应用移入 app/，上游命令中的项目目录对应 app/；定制 Windows 版构建请看 [开发与构建](../BUILDING.md)。
+
 ![Betaflight](https://raw.githubusercontent.com/betaflight/.github/main/profile/images/bf_logo.svg#gh-light-mode-only)
 ![Betaflight](https://raw.githubusercontent.com/betaflight/.github/main/profile/images/bf_logo_dark.svg#gh-dark-mode-only)
 
@@ -114,7 +116,7 @@ The next versions of the App will be a modern tool that based on PWA (Progressiv
 
 ### Prepare your environment
 
-1. Install [node.js](https://nodejs.org/) (refer to [.nvmrc](../../.nvmrc) for minimum required version)
+1. Install [node.js](https://nodejs.org/) (refer to [.nvmrc](../../app/.nvmrc) for minimum required version)
 
 ### PWA version
 

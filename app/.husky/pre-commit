@@ -1,0 +1,4 @@
+if [ -f app/package.json ]; then
+    cd app || exit 1
+fi
+npx lint-staged

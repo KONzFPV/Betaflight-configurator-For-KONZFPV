@@ -75,6 +75,13 @@ jobs:
           ref: ${{ inputs.tag }}
           persist-credentials: false
 
+      - name: Prepare application workspace
+        shell: bash
+        run: |
+          if [ -f app/package.json ]; then
+            cp -a app/. .
+          fi
+
       - name: Setup Node
         uses: actions/setup-node@v5
         with:
@@ -180,6 +187,13 @@ jobs:
         with:
           ref: ${{ inputs.tag }}
           persist-credentials: false
+
+      - name: Prepare application workspace
+        shell: bash
+        run: |
+          if [ -f app/package.json ]; then
+            cp -a app/. .
+          fi
 
       - name: Setup Node
         uses: actions/setup-node@v5

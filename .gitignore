@@ -16,8 +16,8 @@ testresults/
 .DS_store
 
 # artefacts for Visual Studio Code
-.vscode/*
-!.vscode/extensions.json
+app/.vscode/*
+!app/.vscode/extensions.json
 
 # Visual Studio
 .vs/
@@ -35,7 +35,7 @@ nbproject/
 .project
 .settings/
 test-results-junit/
-/src/package.json
+/app/src/package.json
 
 # Capacitor config file, we generate it at runtime
 capacitor.config.json
@@ -56,3 +56,16 @@ components.d.ts
 /*.pem
 /CLAUDE.md
 /.claude
+
+# Application-local development files after the app/ move
+/app/*.pem
+/app/CLAUDE.md
+/app/.claude
+
+# Python and Windows packaging output
+__pycache__/
+*.py[cod]
+/app/dist-desktop/
+/app/desktop/helper/
+/app/desktop/helper-work/
+/app/desktop/electron-runtime/
