@@ -3,10 +3,6 @@ name: KONz Android APK
 on:
   workflow_dispatch:
     inputs:
-      web_url:
-        description: 'Public HTTPS address of the responsive web edition'
-        required: false
-        type: string
 
 permissions:
   contents: read
@@ -39,7 +35,7 @@ jobs:
         run: pnpm install --frozen-lockfile
       - name: Build responsive application
         env:
-          VITE_KONZ_WEB_URL: ${{ inputs.web_url }}
+          VITE_KONZ_WEB_URL: https://konzbf.cn
           NODE_OPTIONS: --max-old-space-size=8192
         run: pnpm exec vite build
       - name: Sync native Android plugins
@@ -70,3 +66,8 @@ jobs:
           name: KONz-Android
           path: app/android-output/KONz-Android.apk
           retention-days: 14
+      - name: Publish Android package to Preview release
+        if: ${{ github.event_name == 'workflow_dispatch' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release upload konz-preview10 android-output/KONz-Android.apk --clobber --repo KONzFPV/Betaflight-configurator-For-KONZFPV

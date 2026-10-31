@@ -17,6 +17,15 @@ test("empty releases and CF failures are not reported as already current",async(
  const failed=new AppUpdates(dir,async()=>({status:404}));await failed.check();assert.equal(failed.state.status,"error");assert.equal(failed.state.notification,false);
  }finally{await rm(dir,{recursive:true,force:true});}
 });
+test("downloading a release marked current remains an explicit user action",async()=>{
+ const dir=await mkdtemp(path.join(os.tmpdir(),"konz-update-current-"));const target=path.join(dir,"current.zip");
+ try{const current={...manifest,build:9};const updates=new AppUpdates(dir,async job=>job.action==="update-download"?{saved:true}:{...response(current),routeId:2});
+ await updates.check();assert.equal(updates.state.status,"current");let chosen=0;
+ await assert.rejects(updates.download("portable",async()=>{chosen++;return target;}));assert.equal(chosen,0);
+ updates.state.status="available";await updates.download("portable",async()=>target);
+ assert.equal(await readFile(target,"utf8"),"abc");assert.equal(updates.state.usedRouteId,2);
+ }finally{await rm(dir,{recursive:true,force:true});}
+});
 test("malicious paths, duplicates, wrong extensions, sizes and checksum rejected",()=>{
  for(const bad of [{...manifest,tag:"../escape"},{...manifest,build:"10"},{...manifest,packages:[manifest.packages[0],manifest.packages[0]]},...["../x.zip","file.exe"].map(name=>({...manifest,packages:[{...manifest.packages[0],name}]})),{...manifest,packages:[{...manifest.packages[0],sha256:"invalid"}]}])assert.throws(()=>validateRelease(bad));
 });
