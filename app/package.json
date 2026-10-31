@@ -55,6 +55,7 @@
     "@nuxt/ui": "^4.4.0",
     "@simplewebauthn/browser": "^13.2.2",
     "@tauri-apps/api": "~2.11.0",
+    "@vueuse/core": "^14.3.0",
     "@vitejs/plugin-vue": "^6.0.1",
     "Leaflet.MultiOptionsPolyline": "github:hgoebl/Leaflet.MultiOptionsPolyline",
     "crypto-es": "^2.1.0",

@@ -5,6 +5,8 @@ import crypto from 'node:crypto';
 const repo = path.resolve(import.meta.dirname, '..');
 const output = path.resolve(process.argv[2] || path.join(repo, 'release'));
 const web = path.join(output, 'htdocs');
+const siteUrl = process.env.VITE_KONZ_WEB_URL || 'https://konzbf.cn';
+if (!/^https:\/\/[a-z0-9.-]+$/i.test(siteUrl)) throw new Error('VITE_KONZ_WEB_URL must be a public HTTPS origin.');
 if (fs.existsSync(web) && fs.readdirSync(web).length) throw new Error('Choose an empty output directory.');
 fs.mkdirSync(web, {recursive:true});
 fs.cpSync(path.join(repo, 'src/dist'), web, {recursive:true});
@@ -13,7 +15,7 @@ for (const name of ['build-api.php', 'deployment-check.html', '.htaccess']) {
 }
 fs.copyFileSync(path.join(repo, 'LICENSE'), path.join(web, 'LICENSE.txt'));
 fs.writeFileSync(path.join(web, 'BUILD-INFO.json'), JSON.stringify({
-    name:'空致 KONz BF地面站', version:'2026.6.2-Preview10', builtAt:new Date().toISOString(),
+    name:'空致 KONz BF地面站', version:'2026.6.2-Preview10', siteUrl, builtAt:new Date().toISOString(),
     upstream:'https://github.com/betaflight/betaflight-configurator/tree/2026.6.2',
     buildRoute:'same-origin PHP -> https://build.betaflight.com',
     modifications:['dual OSD defaults','multiple receiver protocols','download compiled firmware toolbar button',
