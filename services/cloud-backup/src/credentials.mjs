@@ -234,10 +234,10 @@ export async function setup(request, env, path) {
     ensure(!(await credentials(env)), "GitHub App 已连接", 409);
     const token = random();
     await env.DB.prepare("INSERT INTO oauth_states VALUES(?,?,?)")
-      .bind(await hash(token), "setup-launch", now() + 600)
+      .bind(await hash(token), "setup-launch", now() + 3600)
       .run();
     return Response.json(
-      { url: origin + "/setup/start?token=" + token },
+      { url: origin + "/setup/start?token=" + token, expiresAt: now() + 3600 },
       { headers: { "Cache-Control": "no-store" } },
     );
   }
@@ -245,22 +245,47 @@ export async function setup(request, env, path) {
     const token = new URL(request.url).searchParams.get("token");
     ensure(token, "配置链接不完整", 400);
     const value = await env.DB.prepare(
-      "DELETE FROM oauth_states WHERE state_hash=? AND verifier='setup-launch' AND expires_at>? RETURNING state_hash",
+      "SELECT state_hash FROM oauth_states WHERE state_hash=? AND verifier='setup-launch' AND expires_at>?",
     )
       .bind(await hash(token), now())
       .first();
-    ensure(value && !(await credentials(env)), "配置链接已使用或过期", 409);
-    const state = random();
-    await env.DB.prepare("INSERT INTO oauth_states VALUES(?,?,?)")
-      .bind(await hash(state), "setup", now() + 600)
-      .run();
+    ensure(value, "配置链接已过期（有效期为 1 小时），请申请新链接", 409);
+    const app = await credentials(env);
+    if (app) {
+      return new Response(null, {
+        status: 302,
+        headers: {
+          Location:
+            "https://github.com/apps/" + app.slug + "/installations/new",
+          "Cache-Control": "no-store",
+        },
+      });
+    }
+    const currentCookie = (request.headers.get("cookie") || "")
+      .split(";")
+      .map((v) => v.trim())
+      .find((v) => v.startsWith("__Host-konz-setup="))
+      ?.slice("__Host-konz-setup=".length);
+    const existingState = currentCookie
+      ? await env.DB.prepare(
+          "SELECT expires_at FROM oauth_states WHERE state_hash=? AND verifier='setup' AND expires_at>?",
+        )
+          .bind(await hash(currentCookie), now() + 60)
+          .first()
+      : null;
+    const state = existingState ? currentCookie : random();
+    const expires = existingState ? existingState.expires_at : now() + 1800;
+    if (!existingState)
+      await env.DB.prepare("INSERT INTO oauth_states VALUES(?,?,?)")
+        .bind(await hash(state), "setup", expires)
+        .run();
     const manifest = createAppManifest(origin);
     const escaped = JSON.stringify(manifest)
       .replace(/&/g, "&amp;")
       .replace(/"/g, "&quot;")
       .replace(/</g, "&lt;");
     return new Response(
-      '<!doctype html><html lang="zh-CN"><meta charset="utf-8"><title>连接 GitHub App</title><link rel="stylesheet" href="/styles.css"><body><main class="main"><h1>连接 KONz 云备份</h1><p>点击继续，在 GitHub 中创建应用，随后仅选择 konz-backup-inbox 和 konz-backup-library 两个仓库。</p><form method="post" action="https://github.com/settings/apps/new?state=' +
+      '<!doctype html><html lang="zh-CN"><meta charset="utf-8"><title>连接 GitHub App</title><link rel="stylesheet" href="/styles.css"><body><main class="main"><h1>连接 KONz 云备份</h1><p>此入口有效期为 1 小时，可重新打开或刷新。点击继续，在 GitHub 中创建应用，随后仅选择 konz-backup-inbox 和 konz-backup-library 两个仓库；请在同一浏览器中完成授权。</p><form method="post" action="https://github.com/settings/apps/new?state=' +
         state +
         '"><input type="hidden" name="manifest" value="' +
         escaped +
@@ -268,7 +293,7 @@ export async function setup(request, env, path) {
       {
         headers: {
           "Content-Type": "text/html; charset=utf-8",
-          "Set-Cookie": setupCookie(state, 600),
+          "Set-Cookie": setupCookie(state, Math.max(1, expires - now())),
           "Cache-Control": "no-store",
         },
       },

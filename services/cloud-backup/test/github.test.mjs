@@ -1,3 +1,4 @@
+import { DatabaseSync } from "node:sqlite";
 import test from "node:test";
 import assert from "node:assert/strict";
 import { GitHub } from "../src/github.mjs";
@@ -153,4 +154,123 @@ test("both setup entry points send a complete manifest to GitHub", async () => {
     (await jsonResponse.json()).manifest.hook_attributes.url,
     origin + "/api/github/webhook",
   );
+});
+
+function setupDatabase() {
+  const db = new DatabaseSync(":memory:");
+  db.exec(
+    "CREATE TABLE oauth_states(state_hash TEXT PRIMARY KEY, verifier TEXT, expires_at INTEGER); CREATE TABLE settings(key TEXT PRIMARY KEY,value TEXT);",
+  );
+  return {
+    db,
+    binding: {
+      prepare(sql) {
+        let args = [];
+        return {
+          bind(...values) {
+            args = values;
+            return this;
+          },
+          async first() {
+            return db.prepare(sql).get(...args) || null;
+          },
+          async run() {
+            return db.prepare(sql).run(...args);
+          },
+        };
+      },
+    },
+  };
+}
+test("setup link survives previews, repeated opens and browser refreshes", async () => {
+  const { db, binding } = setupDatabase(),
+    origin = "https://backup.example.test";
+  const env = { PUBLIC_ORIGIN: origin, SETUP_TOKEN: "test-token", DB: binding };
+  try {
+    const created = await setup(
+      new Request(origin + "/api/setup/link", {
+        method: "POST",
+        headers: { Authorization: "Bearer test-token" },
+      }),
+      env,
+      "/api/setup/link",
+    );
+    const ticket = await created.json();
+    assert.ok(ticket.expiresAt >= Math.floor(Date.now() / 1000) + 3590);
+    const preview = await setup(new Request(ticket.url), env, "/setup/start");
+    assert.equal(preview.status, 200);
+    const first = await setup(new Request(ticket.url), env, "/setup/start");
+    assert.equal(first.status, 200);
+    const firstCookie = first.headers.get("Set-Cookie").split(";")[0];
+    const firstState = (await first.text()).match(
+      /apps\/new\?state=([^"]+)/,
+    )[1];
+    const refreshed = await setup(
+      new Request(ticket.url, { headers: { Cookie: firstCookie } }),
+      env,
+      "/setup/start",
+    );
+    assert.equal(refreshed.status, 200);
+    assert.equal(
+      (await refreshed.text()).match(/apps\/new\?state=([^"]+)/)[1],
+      firstState,
+    );
+    assert.equal(
+      db
+        .prepare(
+          "SELECT COUNT(*) AS n FROM oauth_states WHERE verifier='setup-launch'",
+        )
+        .get().n,
+      1,
+    );
+    assert.match(
+      refreshed.headers.get("Set-Cookie"),
+      /Secure; HttpOnly; SameSite=Lax/,
+    );
+  } finally {
+    db.close();
+  }
+});
+test("expired or unknown setup links still fail, while expired browser state can restart", async () => {
+  const { db, binding } = setupDatabase(),
+    origin = "https://backup.example.test";
+  const env = { PUBLIC_ORIGIN: origin, SETUP_TOKEN: "test-token", DB: binding };
+  try {
+    const created = await setup(
+      new Request(origin + "/api/setup/link", {
+        method: "POST",
+        headers: { Authorization: "Bearer test-token" },
+      }),
+      env,
+      "/api/setup/link",
+    );
+    const { url } = await created.json();
+    const first = await setup(new Request(url), env, "/setup/start");
+    const cookie = first.headers.get("Set-Cookie").split(";")[0];
+    db.exec("UPDATE oauth_states SET expires_at=0 WHERE verifier='setup'");
+    const again = await setup(
+      new Request(url, { headers: { Cookie: cookie } }),
+      env,
+      "/setup/start",
+    );
+    assert.equal(again.status, 200);
+    assert.notEqual(again.headers.get("Set-Cookie").split(";")[0], cookie);
+    db.exec(
+      "UPDATE oauth_states SET expires_at=0 WHERE verifier='setup-launch'",
+    );
+    await assert.rejects(
+      setup(new Request(url), env, "/setup/start"),
+      /1 小时/,
+    );
+    await assert.rejects(
+      setup(
+        new Request(origin + "/setup/start?token=not-issued"),
+        env,
+        "/setup/start",
+      ),
+      /过期/,
+    );
+  } finally {
+    db.close();
+  }
 });
