@@ -1,0 +1,604 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>KONz · 云备份投稿与审核 Demo</title>
+    <link rel="stylesheet" href="./styles.css" />
+    <script type="module" src="./app.js"></script>
+  </head>
+  <body>
+    <aside class="sidebar">
+      <a class="brand" href="#library">空致 KONz</a>
+      <p class="side-sub">云备份 · 独立交互 Demo</p>
+      <div class="local-pill"><i></i> 本地演示 / 未连接云端</div>
+      <nav aria-label="页面导航">
+        <a href="#library" data-page="library"><span>▤</span>飞控备份下载</a>
+        <a href="#submit" data-page="submit"><span>↑</span>飞控备份投稿</a>
+        <a href="#mine" data-page="mine"
+          ><span>◷</span>投稿进度 <b id="mine-count">0</b></a
+        >
+        <div class="nav-separator"></div>
+        <small>管理员体验</small>
+        <a href="#review" data-page="review"
+          ><span>✓</span>云端审核 <b id="pending-count">0</b></a
+        >
+        <a href="#guide" data-page="guide"><span>ⓘ</span>流程与说明</a>
+      </nav>
+      <div class="sidebar-foot">
+        <b>先验证流程，再接真实服务</b>
+        <p>所有投稿、审核和下架仅在当前浏览器生效。</p>
+        <button id="reset-demo" class="text-button">重置演示数据</button>
+      </div>
+    </aside>
+    <main>
+      <header>
+        <div>
+          <div class="eyebrow">KONz / COMMUNITY BACKUPS</div>
+          <h1 id="page-title">飞控备份下载</h1>
+        </div>
+        <div class="appearance">
+          <div class="palette" aria-label="背景主题">
+            <button
+              data-theme="default"
+              title="BF 默认"
+              aria-label="BF 默认背景"
+              style="--color: #f5f5f5"
+            ></button
+            ><button
+              data-theme="blue"
+              title="雾蓝"
+              aria-label="雾蓝背景"
+              style="--color: #dceaf7"
+            ></button
+            ><button
+              data-theme="green"
+              title="薄荷"
+              aria-label="薄荷背景"
+              style="--color: #dceee1"
+            ></button
+            ><button
+              data-theme="purple"
+              title="浅紫"
+              aria-label="浅紫背景"
+              style="--color: #eae0f4"
+            ></button
+            ><button
+              data-theme="peach"
+              title="蜜桃"
+              aria-label="蜜桃背景"
+              style="--color: #f8e3da"
+            ></button
+            ><button
+              data-theme="sand"
+              title="暖沙"
+              aria-label="暖沙背景"
+              style="--color: #f2ead4"
+            ></button>
+          </div>
+          <label class="night-label"
+            ><input id="night" type="checkbox" />夜间模式</label
+          >
+        </div>
+      </header>
+      <div class="demo-strip">
+        <span><b>交互演示</b>　上传和审核仅保存在本机，不会发送到 GitHub。</span
+        ><span id="storage-status" role="status">正在加载本地数据…</span>
+      </div>
+      <section id="page-library" class="page" hidden>
+        <div class="hero">
+          <div>
+            <div class="eyebrow">玩家共享 · 审核后展示</div>
+            <h2>给同型号飞控，多一份参考。</h2>
+            <p>查找完整 Flash 备份，核对型号、硬件版本和实物照片后再下载。</p>
+          </div>
+          <button class="primary" data-go="submit">＋ 投稿我的备份</button>
+        </div>
+        <div class="stats" id="library-stats"></div>
+        <div class="notice">
+          <b>此备份下载来自全国各地用户玩家，请谨慎下载使用，测试性功能。</b>
+          <p>
+            完整镜像包含原机设置。审核通过不代表跨型号通用；本 Demo
+            的下载仅生成说明 TXT，不能用于烧录。
+          </p>
+        </div>
+        <div class="toolbar">
+          <label class="search"
+            ><span>搜索型号 / 品牌 / 版本</span
+            ><input
+              id="library-search"
+              placeholder="例如：F405、演示型号 A…" /></label
+          ><label
+            ><span>主控型号</span
+            ><select id="library-mcu">
+              <option value="">全部主控</option>
+              <option>STM32F405</option>
+              <option>STM32F722</option>
+              <option>STM32F411</option>
+              <option>其他 / 未知</option>
+            </select></label
+          ><label
+            ><span>排序</span
+            ><select id="library-sort">
+              <option value="new">最近发布</option>
+              <option value="model">型号名称</option>
+            </select></label
+          ><button id="refresh-library">刷新列表</button>
+        </div>
+        <div class="table-card">
+          <div class="table-scroll">
+            <table>
+              <thead>
+                <tr>
+                  <th>备份 / 适用型号</th>
+                  <th>主控与固件</th>
+                  <th>材料</th>
+                  <th>发布状态</th>
+                  <th>操作</th>
+                </tr>
+              </thead>
+              <tbody id="library-body"></tbody>
+            </table>
+          </div>
+          <div id="library-empty" class="empty" hidden>
+            没有符合条件的已发布备份。<button id="clear-filter">
+              清除筛选
+            </button>
+          </div>
+        </div>
+        <p class="muted small">
+          此处只显示模拟审核已通过的记录。待审核、已拒绝、已下架的内容不会出现。
+        </p>
+      </section>
+      <section id="page-submit" class="page" hidden>
+        <div class="section-intro">
+          <div>
+            <h2>分享你的完整飞控备份</h2>
+            <p>
+              填写适用范围，附上两张实物照片。提交后先审核，通过后才会公开。
+            </p>
+          </div>
+          <button id="fill-example" class="soft">一键填入演示材料</button>
+        </div>
+        <form id="submission-form">
+          <div class="submission-grid">
+            <div class="stack">
+              <fieldset class="card">
+                <legend>1 · 完整 Flash 备份</legend>
+                <label class="file-drop" id="hex-drop"
+                  ><span class="upload-icon">↑</span
+                  ><b>选择本软件导出的完整 HEX</b
+                  ><span class="muted small"
+                    >本地演示可选择文件验证；不会联网提交</span
+                  ><input id="hex-file" type="file" accept=".hex,text/plain"
+                /></label>
+                <div class="file-status" id="hex-status" role="status">
+                  尚未选择文件。也可以点击上方“一键填入演示材料”。
+                </div>
+                <p class="small muted">
+                  原机设置不会被删除。这里仅校验 Intel HEX
+                  格式与校验和，演示材料不代表真实完整备份。
+                </p>
+              </fieldset>
+              <fieldset class="card">
+                <legend>2 · 适用信息</legend>
+                <div class="form-grid">
+                  <label
+                    >品牌 <em>*</em
+                    ><input
+                      name="brand"
+                      required
+                      maxlength="50"
+                      placeholder="填写真实品牌"
+                  /></label>
+                  <label
+                    >飞控型号 <em>*</em
+                    ><input
+                      name="model"
+                      required
+                      maxlength="80"
+                      placeholder="核对板上丝印"
+                  /></label>
+                  <label
+                    >硬件版本 <em>*</em
+                    ><input
+                      name="hardware"
+                      required
+                      maxlength="40"
+                      placeholder="如 V1.0，无法确认填未知"
+                  /></label>
+                  <label
+                    >主控型号 <em>*</em
+                    ><select name="mcu" required>
+                      <option value="">请选择</option>
+                      <option>STM32F405</option>
+                      <option>STM32F722</option>
+                      <option>STM32F411</option>
+                      <option>其他 / 未知</option>
+                    </select></label
+                  >
+                  <label
+                    >内部 Flash 容量 <em>*</em
+                    ><select name="capacity" required>
+                      <option value="">请选择</option>
+                      <option value="256">256 KiB</option>
+                      <option value="512">512 KiB</option>
+                      <option value="1024">1024 KiB</option>
+                      <option value="2048">2048 KiB</option>
+                    </select></label
+                  >
+                  <label
+                    >固件版本 <em>*</em
+                    ><input
+                      name="firmware"
+                      required
+                      maxlength="60"
+                      placeholder="如 Betaflight 4.5.1"
+                  /></label>
+                  <label class="full"
+                    >固件 Target / 主板标识<input
+                      name="target"
+                      maxlength="80"
+                      placeholder="无法读取可留空"
+                  /></label>
+                  <label class="full"
+                    >适用说明与备注 <em>*</em
+                    ><textarea
+                      name="note"
+                      required
+                      maxlength="1200"
+                      rows="4"
+                      placeholder="说明硬件版本、图传、接收机、已知限制等。"
+                    ></textarea>
+                  </label>
+                </div>
+                <p class="small muted">
+                  本 Demo 中这些信息均为人工填写或演示填充，不表示已从飞控读取。
+                </p>
+              </fieldset>
+              <fieldset class="card">
+                <legend>3 · 两张实物照片</legend>
+                <p>
+                  请提交你自己的手持飞控正反面照片，并包含飞控连接地面站的画面。
+                </p>
+                <div class="photo-upload-grid">
+                  <label class="photo-upload"
+                    ><span>照片 1 · 飞控正面 <em>*</em></span
+                    ><img
+                      id="front-preview"
+                      hidden
+                      alt="已选正面照片预览" /><span
+                      class="photo-placeholder"
+                      id="front-placeholder"
+                      >＋ 选择正面照片</span
+                    ><input
+                      id="front-file"
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp" /></label
+                  ><label class="photo-upload"
+                    ><span>照片 2 · 飞控背面 <em>*</em></span
+                    ><img
+                      id="back-preview"
+                      hidden
+                      alt="已选背面照片预览" /><span
+                      class="photo-placeholder"
+                      id="back-placeholder"
+                      >＋ 选择背面照片</span
+                    ><input
+                      id="back-file"
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp"
+                  /></label>
+                </div>
+                <p class="small muted">
+                  支持 JPG / PNG / WebP，单张不超过 8
+                  MiB；仅在浏览器中缩图处理。
+                </p>
+                <details class="photo-reference">
+                  <summary>查看拍摄参考 · 点击图片可放大</summary>
+                  <div class="reference-grid">
+                    <button
+                      type="button"
+                      data-photo="assets/photo-front.jpg"
+                      data-caption="正面拍摄参考 · 不是当前投稿的实拍证据"
+                    >
+                      <img
+                        src="assets/photo-front.jpg"
+                        alt="手持飞控正面及地面站画面参考"
+                      /></button
+                    ><button
+                      type="button"
+                      data-photo="assets/photo-back.jpg"
+                      data-caption="背面拍摄参考 · 不是当前投稿的实拍证据"
+                    >
+                      <img
+                        src="assets/photo-back.jpg"
+                        alt="手持飞控背面及地面站画面参考"
+                      />
+                    </button>
+                  </div>
+                  <p class="small muted">
+                    参考图片仅用于说明拍摄方式，真实投稿请自行拍摄。
+                  </p>
+                </details>
+              </fieldset>
+            </div>
+            <div class="stack">
+              <section class="card summary-card">
+                <div class="eyebrow">提交前确认</div>
+                <h3>先审核，后公开</h3>
+                <ol class="steps">
+                  <li>
+                    <b>提交完整材料</b><span>HEX、适用信息、两张实拍图</span>
+                  </li>
+                  <li>
+                    <b>进入私有待审区</b><span>软件公开列表暂不可见</span>
+                  </li>
+                  <li>
+                    <b>管理员人工审核</b><span>通过、拒绝并说明原因</span>
+                  </li>
+                  <li>
+                    <b>审核通过后发布</b><span>文件就绪后才进入下载列表</span>
+                  </li>
+                </ol>
+                <div class="divider"></div>
+                <label class="check"
+                  ><input id="share-consent" type="checkbox" required /><span
+                    >我确认有权公开这些材料，了解完整 Flash
+                    可能包含原机设置。</span
+                  ></label
+                ><label class="check"
+                  ><input id="demo-consent" type="checkbox" required /><span
+                    >我知道这是本地交互
+                    Demo，没有上传到云端，也不会生成可烧录的演示下载。</span
+                  ></label
+                >
+                <div
+                  id="form-error"
+                  class="inline-error"
+                  role="alert"
+                  hidden
+                ></div>
+                <button id="submit-button" type="submit" class="primary wide">
+                  提交备份，等待审核
+                </button>
+                <p class="small muted">
+                  演示数据保存在此浏览器。刷新后可继续验证，清除浏览器数据后会丢失。
+                </p>
+              </section>
+            </div>
+          </div>
+        </form>
+      </section>
+      <section id="page-mine" class="page" hidden>
+        <div class="section-intro">
+          <div>
+            <h2>我的投稿进度</h2>
+            <p>查看本机提交的材料、审核结果及拒绝／下架原因。</p>
+          </div>
+          <button class="primary" data-go="submit">＋ 新投稿</button>
+        </div>
+        <div id="mine-list" class="stack"></div>
+      </section>
+      <section id="page-review" class="page" hidden>
+        <div class="admin-banner">
+          <span class="admin-icon">✓</span>
+          <div>
+            <b>管理员审核 · 模拟身份</b>
+            <p>
+              这里无需真实登录，只演示操作。正式版由服务端验证指定 GitHub
+              管理员身份。
+            </p>
+          </div>
+          <span class="badge purple">演示管理员</span>
+        </div>
+        <div class="stats" id="review-stats"></div>
+        <div class="toolbar">
+          <label class="search"
+            ><span>搜索投稿</span
+            ><input
+              id="review-search"
+              placeholder="备份编号、品牌或型号" /></label
+          ><label
+            ><span>审核状态</span
+            ><select id="review-filter">
+              <option value="pending">待审核</option>
+              <option value="all">全部记录</option>
+              <option value="published">已发布</option>
+              <option value="rejected">已拒绝</option>
+              <option value="withdrawn">已下架</option>
+            </select></label
+          ><button id="refresh-review">刷新队列</button>
+        </div>
+        <div class="table-card">
+          <div class="table-scroll">
+            <table>
+              <thead>
+                <tr>
+                  <th>投稿 / 适用型号</th>
+                  <th>主控与固件</th>
+                  <th>材料检查</th>
+                  <th>状态</th>
+                  <th>操作</th>
+                </tr>
+              </thead>
+              <tbody id="review-body"></tbody>
+            </table>
+          </div>
+          <div id="review-empty" class="empty" hidden>当前筛选下没有投稿。</div>
+        </div>
+        <p class="small muted">
+          通过审核 → 模拟发布材料 → 加入公开列表；下架后从下载列表移除。本 Demo
+          不调用 GitHub 或 Cloudflare。
+        </p>
+      </section>
+      <section id="page-guide" class="page" hidden>
+        <div class="hero">
+          <div>
+            <div class="eyebrow">这次验证什么</div>
+            <h2>把一份投稿，从提交走到发布。</h2>
+            <p>这份独立 Demo 不影响地面站，也不连接真实仓库。</p>
+          </div>
+        </div>
+        <div class="guide-grid">
+          <section class="card">
+            <h3>① 模拟投稿</h3>
+            <p>
+              打开“飞控备份投稿”，点击“一键填入演示材料”，勾选两项确认并提交。也可以选择你自己的文件与照片，仅保存在本机。
+            </p>
+          </section>
+          <section class="card">
+            <h3>② 模拟审核</h3>
+            <p>
+              进入“云端审核”，打开投稿详情，检查信息、照片和文件格式，再选择通过或填写理由拒绝。
+            </p>
+          </section>
+          <section class="card">
+            <h3>③ 检查公开列表</h3>
+            <p>
+              审核通过后记录才显示在“飞控备份下载”。下架后消失；“投稿进度”会保留状态与原因。
+            </p>
+          </section>
+        </div>
+        <section class="card">
+          <h3>正式服务的分工</h3>
+          <div class="flow">
+            <span>软件投稿</span><i>→</i><span>Worker 校验</span><i>→</i
+            ><span>GitHub 私有待审</span><i>→</i><span>电脑人工审核</span
+            ><i>→</i><span>发布文件与清单</span>
+          </div>
+          <p>
+            正式版还需服务端身份校验、配额、完整镜像校验、幂等发布和故障处理。本地“审核”按钮不具备真实云端权限。
+          </p>
+        </section>
+        <section class="notice">
+          <b>演示与真实材料的边界</b>
+          <p>
+            预置的品牌和板型为虚构，配图是拍摄参考。实际选择的文件只用于本地验证；所有下载按钮只生成带有“非固件”标记的
+            TXT 说明，不会下载可烧录 HEX。
+          </p>
+        </section>
+      </section>
+    </main>
+    <footer>
+      <span>空致 KONz · 云备份投稿与审核 Demo</span
+      ><span>本地保存 · 刷新保留 · 未连接云端</span>
+    </footer>
+    <dialog id="detail-dialog" class="detail-dialog">
+      <div class="dialog-head">
+        <div>
+          <div class="eyebrow" id="detail-eyebrow">备份详情</div>
+          <h2 id="detail-title"></h2>
+        </div>
+        <button
+          class="icon-button"
+          data-close="detail-dialog"
+          aria-label="关闭详情"
+        >
+          ×
+        </button>
+      </div>
+      <div id="detail-content" class="dialog-content"></div>
+      <div id="detail-actions" class="dialog-actions"></div>
+    </dialog>
+    <dialog id="decision-dialog" class="decision-dialog">
+      <form id="decision-form">
+        <div class="dialog-head">
+          <h2 id="decision-title"></h2>
+          <button
+            type="button"
+            class="icon-button"
+            data-close="decision-dialog"
+            aria-label="关闭操作窗口"
+          >
+            ×
+          </button>
+        </div>
+        <div class="dialog-content">
+          <p id="decision-description"></p>
+          <label id="decision-check-wrap" class="check"
+            ><input id="decision-check" type="checkbox" /><span
+              >我已核对适用型号、硬件版本和两张照片，确认可以模拟发布。</span
+            ></label
+          ><label id="decision-reason-wrap"
+            >原因 <em>*</em
+            ><textarea
+              id="decision-reason"
+              rows="4"
+              maxlength="600"
+              placeholder="说明拒绝或下架的原因，投稿人可以查看。"
+            ></textarea>
+          </label>
+          <p class="small muted">操作只修改本机演示记录。</p>
+          <div
+            id="decision-error"
+            role="alert"
+            class="inline-error"
+            hidden
+          ></div>
+        </div>
+        <div class="dialog-actions">
+          <button type="button" data-close="decision-dialog">取消</button
+          ><button class="primary" id="decision-confirm" type="submit">
+            确认
+          </button>
+        </div>
+      </form>
+    </dialog>
+    <dialog id="photo-dialog" class="photo-dialog">
+      <div class="dialog-head">
+        <h2 id="photo-caption">照片预览</h2>
+        <button
+          class="icon-button"
+          data-close="photo-dialog"
+          aria-label="关闭照片"
+        >
+          ×
+        </button>
+      </div>
+      <img id="photo-large" alt="放大的照片" />
+    </dialog>
+    <dialog id="download-dialog" class="decision-dialog">
+      <div class="dialog-head"><h2>下载前请仔细阅读</h2></div>
+      <div class="dialog-content">
+        <p class="red strong">
+          此备份下载来自全国各地用户玩家，请谨慎下载使用，测试性功能。
+        </p>
+        <p id="download-model"></p>
+        <p>
+          完整 Flash
+          镜像可能包含原机设置，请核对飞控型号、硬件版本、主控与容量。
+        </p>
+        <label class="check"
+          ><input id="download-agree" type="checkbox" /><span
+            >我已阅读并知道本 Demo 下载的是说明 TXT，不能用于烧录。</span
+          ></label
+        >
+        <div class="countdown">
+          <strong id="download-timer">10s</strong
+          ><span>倒计时结束并确认后可继续</span>
+        </div>
+      </div>
+      <div class="dialog-actions">
+        <button id="download-cancel" disabled>取消</button
+        ><button id="download-confirm" class="primary" disabled>
+          请阅读 10s
+        </button>
+      </div>
+    </dialog>
+    <dialog id="reset-dialog" class="decision-dialog">
+      <div class="dialog-head"><h2>重置本地演示数据？</h2></div>
+      <div class="dialog-content">
+        <p>
+          将删除本 Demo
+          中提交的材料和审核记录，并恢复初始示例。你的电脑原始文件不会被修改。
+        </p>
+      </div>
+      <div class="dialog-actions">
+        <button data-close="reset-dialog">保留数据</button
+        ><button id="reset-confirm" class="danger">重置演示</button>
+      </div>
+    </dialog>
+    <div id="toast" role="status" class="toast" hidden></div>
+  </body>
+</html>
