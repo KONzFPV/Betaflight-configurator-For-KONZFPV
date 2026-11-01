@@ -112,10 +112,6 @@
             ><span>主控型号</span
             ><select id="library-mcu">
               <option value="">全部主控</option>
-              <option>STM32F405</option>
-              <option>STM32F722</option>
-              <option>STM32F411</option>
-              <option>其他 / 未知</option>
             </select></label
           ><label
             ><span>排序</span
@@ -214,19 +210,19 @@
                       <option>STM32F405</option>
                       <option>STM32F722</option>
                       <option>STM32F411</option>
+                      <option>STM32G473</option>
+                      <option>STM32H743</option>
+                      <option value="custom">自定义型号</option>
                       <option>其他 / 未知</option>
                     </select></label
                   >
-                  <label
-                    >内部 Flash 容量 <em>*</em
-                    ><select name="capacity" required>
-                      <option value="">请选择</option>
-                      <option value="256">256 KiB</option>
-                      <option value="512">512 KiB</option>
-                      <option value="1024">1024 KiB</option>
-                      <option value="2048">2048 KiB</option>
-                    </select></label
-                  >
+                  <label id="custom-mcu-label" hidden
+                    >自定义主控型号 <em>*</em
+                    ><input
+                      name="customMcu"
+                      maxlength="60"
+                      placeholder="填写完整主控型号"
+                  /></label>
                   <label
                     >固件版本 <em>*</em
                     ><input
@@ -235,12 +231,7 @@
                       maxlength="60"
                       placeholder="如 Betaflight 4.5.1"
                   /></label>
-                  <label class="full"
-                    >固件 Target / 主板标识<input
-                      name="target"
-                      maxlength="80"
-                      placeholder="无法读取可留空"
-                  /></label>
+
                   <label class="full"
                     >适用说明与备注 <em>*</em
                     ><textarea

@@ -1,0 +1,42 @@
+{
+  "name": "konz-cloud-backup",
+  "main": "src/worker.mjs",
+  "compatibility_date": "2026-11-01",
+  "workers_dev": true,
+  "assets": {
+    "directory": "./public",
+    "binding": "ASSETS",
+    "run_worker_first": true,
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "konz-cloud-backup",
+      "database_id": "b565b09e-3f56-4df7-b6f1-e0d4dcb372c0",
+      "migrations_dir": "migrations",
+    },
+  ],
+  "vars": {
+    "GITHUB_OWNER": "KONzFPV",
+    "GITHUB_INBOX": "konz-backup-inbox",
+    "GITHUB_LIBRARY": "konz-backup-library",
+    "ADMIN_GITHUB_ID": "151951515",
+    "PUBLIC_ORIGIN": "https://backup.konzbf.cn",
+    "TURNSTILE_SITE_KEY": "0x4AAAAAAFu9wUgKCZnzTr82",
+    "SUBMISSIONS_ENABLED": "false",
+    "DAILY_GLOBAL_LIMIT": "20",
+    "DAILY_IP_LIMIT": "3",
+    "OPEN_SUBMISSION_LIMIT": "100",
+  },
+  "account_id": "d4fa75b1a2b4166da7640a74f62b4613",
+  "triggers": {
+    "crons": ["17 3 * * *"],
+  },
+  "preview_urls": false,
+  "routes": [
+    {
+      "pattern": "backup.konzbf.cn",
+      "custom_domain": true,
+    },
+  ],
+}

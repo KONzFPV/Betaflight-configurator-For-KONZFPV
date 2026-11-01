@@ -140,9 +140,7 @@ function seeds() {
     brand: "演示品牌",
     hardware: "V1.0",
     mcu: "STM32F405",
-    capacity: 1024,
     firmware: "Betaflight 4.5.1",
-    target: "DEMO_ONLY",
     note: "虚构的演示板型，仅用于验证投稿与审核流程。请勿用作真实硬件适配依据。",
     isExample: true,
     isMine: false,
@@ -173,7 +171,6 @@ function seeds() {
       id: "DEMO-0002",
       model: "F722 演示型号 B",
       mcu: "STM32F722",
-      capacity: 512,
       state: "pending",
       history: [{ at: stamp(), text: "预置待审核示例" }],
     },
@@ -189,7 +186,6 @@ function seeds() {
       id: "DEMO-0004",
       model: "F411 演示型号 D",
       mcu: "STM32F411",
-      capacity: 512,
       state: "rejected",
       reason: "演示：照片中的硬件版本与填写内容不一致，请核对后重新投稿。",
       history: [{ at: stamp(), text: "预置拒绝示例" }],
@@ -264,9 +260,7 @@ function rowInfo(r) {
     esc(r.mcu) +
     "<small>" +
     esc(r.firmware) +
-    " · " +
-    r.capacity +
-    " KiB</small></td>"
+    "</small></td>"
   );
 }
 function renderLibrary() {
@@ -553,9 +547,7 @@ function fillExample() {
     model: "F405 我的演示投稿",
     hardware: "V2.0",
     mcu: "STM32F405",
-    capacity: "1024",
     firmware: "Betaflight 4.5.1",
-    target: "DEMO_ONLY",
     note: "这是一份模拟投稿，用于验证提交、审核和下载列表联动。附图是拍摄参考，不代表本板型。",
   };
   for (const [k, v] of Object.entries(data))
@@ -594,13 +586,11 @@ async function submit(event) {
   for (const key of Object.keys(data)) data[key] = data[key].trim();
   if (["brand", "model", "hardware", "firmware", "note"].some((k) => !data[k]))
     return formError("必填内容不能只包含空格。");
-  if (
-    !selectedHex.isExample &&
-    selectedHex.total !== Number(data.capacity) * 1024
-  )
-    return formError(
-      "解码数据长度与填写的 Flash 容量不一致，请核对完整备份和容量。",
-    );
+  if (data.mcu === "custom") {
+    if (!data.customMcu) return formError("请填写自定义主控型号。");
+    data.mcu = data.customMcu;
+  }
+  delete data.customMcu;
   saving = true;
   $("submit-button").disabled = true;
   try {
@@ -612,7 +602,6 @@ async function submit(event) {
     const row = {
       ...data,
       id,
-      capacity: Number(data.capacity),
       state: "pending",
       isMine: true,
       isExample: selectedHex.isExample,
@@ -624,7 +613,7 @@ async function submit(event) {
       photos: structuredClone(photos),
       validation: selectedHex.isExample
         ? "演示占位，未进行真实固件校验"
-        : "本地格式、记录校验和、地址连续性和容量检查通过；未验证固件兼容性",
+        : "本地格式、记录校验和和地址连续性检查通过；未验证固件兼容性",
       reason: "",
       createdAt: stamp(),
       updatedAt: stamp(),
@@ -661,9 +650,7 @@ function detail(id, context = "library") {
     ["品牌", r.brand],
     ["硬件版本", r.hardware],
     ["主控", r.mcu],
-    ["Flash 容量", r.capacity + " KiB"],
     ["固件版本", r.firmware],
-    ["Target", r.target || "未知 / 未填写"],
   ];
   $("detail-content").innerHTML =
     (r.isExample
@@ -1005,6 +992,12 @@ $("reset-confirm").addEventListener("click", run(reset));
 window.addEventListener("hashchange", route);
 window.addEventListener("pageshow", () => {
   if (db) run(refresh)();
+});
+const demoMcu = $("submission-form").elements.namedItem("mcu");
+demoMcu.addEventListener("change", () => {
+  const custom = demoMcu.value === "custom";
+  $("custom-mcu-label").hidden = !custom;
+  $("submission-form").elements.namedItem("customMcu").required = custom;
 });
 prefRead();
 applyAppearance();

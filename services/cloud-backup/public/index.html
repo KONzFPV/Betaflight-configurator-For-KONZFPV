@@ -1,0 +1,266 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>空致 KONz · 云备份</title>
+    <link rel="stylesheet" href="/styles.css" />
+    <link rel="stylesheet" href="/cloud.css" />
+    <script type="module" src="/cloud.js"></script>
+  </head>
+  <body>
+    <aside class="sidebar">
+      <div class="brand">空致 KONz</div>
+      <p class="muted">飞控完整备份 · 云端服务</p>
+      <p id="connection" class="small muted">正在连接…</p>
+      <nav>
+        <button data-go="library">▤　飞控备份下载</button
+        ><button data-go="submit">↑　飞控备份投稿</button
+        ><button data-go="mine">◷　我的投稿进度</button
+        ><button data-go="review">✓　管理员审核</button>
+      </nav>
+      <div class="sidebar-foot small muted">
+        完整 HEX · 两张实拍图<br />先审核，后公开<br /><a href="/#setup"
+          >连接 GitHub App</a
+        >
+      </div>
+    </aside>
+    <main class="main">
+      <header class="page-header">
+        <div>
+          <h1 id="title">飞控备份下载</h1>
+          <p class="muted">投稿进入私有待审区，审核通过后才会公开。</p>
+        </div>
+        <div class="toolbar">
+          <label><input id="night" type="checkbox" /> 夜间模式</label
+          ><a id="login" class="button soft" href="/auth/login"
+            >GitHub 管理员登录</a
+          ><button id="logout" hidden>退出审核</button>
+        </div>
+      </header>
+      <div id="global-error" class="form-error" role="alert" hidden></div>
+      <section id="library" class="page">
+        <div class="notice">
+          实验性功能：备份由各地用户提供，格式校验通过不代表与你的硬件兼容。请核对板型、硬件修订和固件版本，保留自己的原始备份。
+        </div>
+        <div class="toolbar">
+          <input
+            id="search"
+            placeholder="搜索品牌、型号、固件版本"
+            aria-label="搜索备份"
+          /><select id="mcu-filter" aria-label="筛选主控">
+            <option value="">全部主控</option></select
+          ><button data-refresh>刷新列表</button>
+        </div>
+        <div id="library-list" class="cloud-list"></div>
+      </section>
+      <section id="submit" class="page" hidden>
+        <form id="submission-form">
+          <fieldset class="card">
+            <legend>1 · 完整 Flash 备份</legend>
+            <p>
+              选择本软件导出的完整
+              HEX。原机设置不会被裁剪。上传前会检查记录校验和、地址连续性与完整性。
+            </p>
+            <input id="hex" type="file" accept=".hex" required />
+            <p id="hex-info" class="small muted">尚未选择文件</p>
+          </fieldset>
+          <fieldset class="card">
+            <legend>2 · 适用信息</legend>
+            <div class="form-grid">
+              <label>品牌 *<input name="brand" maxlength="50" required /></label
+              ><label
+                >飞控型号 *<input name="model" maxlength="80" required /></label
+              ><label
+                >硬件版本 *<input
+                  name="hardware"
+                  maxlength="40"
+                  placeholder="如 V1.0，无法确认填未知"
+                  required /></label
+              ><label
+                >主控型号 *<select id="mcu" name="mcu" required>
+                  <option value="">请选择</option>
+                  <option>STM32F405</option>
+                  <option>STM32F722</option>
+                  <option>STM32F411</option>
+                  <option>STM32G473</option>
+                  <option>STM32H743</option>
+                  <option value="custom">自定义型号</option>
+                </select></label
+              ><label id="custom-label" hidden
+                >自定义主控型号 *<input
+                  id="custom-mcu"
+                  maxlength="60"
+                  placeholder="填写芯片上的完整型号" /></label
+              ><label
+                >固件版本 *<input
+                  name="firmware"
+                  maxlength="60"
+                  placeholder="如 Betaflight 4.5.1"
+                  required /></label
+              ><label class="full"
+                >适用说明与备注 *<textarea
+                  name="note"
+                  maxlength="1200"
+                  rows="4"
+                  required
+                  placeholder="说明图传、接收机、硬件差异及已知限制"
+                ></textarea>
+              </label>
+            </div>
+            <p class="small muted">
+              无法从备份中可靠读取的适用信息需人工填写。
+            </p>
+          </fieldset>
+          <fieldset class="card">
+            <legend>3 · 两张实物照片</legend>
+            <p>请手持同一块飞控拍摄正反面，并包含连接地面站的画面。</p>
+            <div class="photo-upload-grid">
+              <label
+                >正面 *<input
+                  id="front"
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  required /><img
+                  id="front-preview"
+                  alt="所选正面照片"
+                  hidden /></label
+              ><label
+                >背面 *<input
+                  id="back"
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  required /><img id="back-preview" alt="所选背面照片" hidden
+              /></label>
+            </div>
+            <details>
+              <summary>查看拍摄示例（真实投稿需自行拍摄）</summary>
+              <div class="reference-grid">
+                <img src="/assets/photo-front.jpg" alt="正面拍摄示例" /><img
+                  src="/assets/photo-back.jpg"
+                  alt="背面拍摄示例"
+                />
+              </div>
+            </details>
+            <p class="small muted">
+              JPG / PNG / WebP，单张不超过 8 MiB；上传前缩图并重编码为
+              JPEG，去除 EXIF。
+            </p>
+          </fieldset>
+          <section class="card">
+            <label class="checkline"
+              ><input
+                id="share"
+                type="checkbox"
+                required
+              />我有权公开这些材料，了解完整备份可能包含原机设置。</label
+            ><label class="checkline"
+              ><input
+                id="experimental"
+                type="checkbox"
+                required
+              />我了解这是实验性功能，上传后需要人工审核，不保证与其他硬件兼容。</label
+            >
+            <div id="turnstile"></div>
+            <p id="upload-info" class="small" role="status"></p>
+            <button id="submit-button" class="primary" type="submit" disabled>
+              提交备份，等待审核
+            </button>
+          </section>
+        </form>
+      </section>
+      <section id="mine" class="page" hidden>
+        <p class="muted">
+          投稿回执保存在此浏览器。清除浏览器数据后将无法在此找回进度；请保存回执文件。
+        </p>
+        <button id="refresh-mine">刷新进度</button>
+        <div id="mine-list" class="cloud-list"></div>
+      </section>
+      <section id="review" class="page" hidden>
+        <div id="review-login" class="notice">
+          此处仅供管理员使用。请使用指定 GitHub 账号登录。
+        </div>
+        <div class="toolbar">
+          <select id="review-filter">
+            <option value="pending">待审核</option>
+            <option value="all">全部状态</option>
+            <option value="published">已发布</option>
+            <option value="publish_failed">发布失败</option>
+            <option value="withdrawing">下架未完成</option></select
+          ><button data-refresh>刷新审核队列</button>
+        </div>
+        <div id="review-list" class="cloud-list"></div>
+      </section>
+      <section id="setup" class="page" hidden>
+        <section class="card">
+          <h2>连接 GitHub</h2>
+          <p>
+            只需创建一次专用 GitHub
+            App，并且仅选择以下两个仓库：<b>konz-backup-inbox</b>、<b>konz-backup-library</b>。
+          </p>
+          <p>
+            创建页面显示的权限应为仓库内容读写；审核登录会核对管理员固定账号
+            ID。应用私钥加密保存在云端，不会交给普通投稿用户。
+          </p>
+          <p id="setup-status">正在检查…</p>
+          <label id="setup-key-label"
+            >配置凭证<input
+              id="setup-key"
+              type="password"
+              autocomplete="off"
+              placeholder="仅首次连接需要" /></label
+          ><button id="setup-button" class="primary">
+            创建并连接 GitHub App</button
+          ><a id="install-link" class="button primary" hidden
+            >继续安装到两个仓库</a
+          >
+        </section>
+      </section>
+    </main>
+    <dialog id="download-dialog">
+      <h2>下载前请阅读</h2>
+      <p>
+        此备份来自全国各地用户玩家，请谨慎下载使用。这是测试性功能；即使主控型号相同，硬件版本、引脚和外围设备也可能不同。
+      </p>
+      <p>先保留你自己的完整备份，核对适用范围。下载后不会自动烧录。</p>
+      <label class="checkline"
+        ><input
+          id="download-agree"
+          type="checkbox"
+        />我已了解风险并核对适用信息</label
+      >
+      <div class="dialog-actions">
+        <button id="download-cancel">取消</button
+        ><button id="download-confirm" class="primary" disabled>
+          请阅读 10 秒
+        </button>
+      </div>
+    </dialog>
+    <dialog id="review-dialog">
+      <h2 id="review-title">审核材料</h2>
+      <div id="review-detail"></div>
+      <label class="checkline"
+        ><input
+          id="review-agree"
+          type="checkbox"
+        />我已核对照片、板型与适用范围</label
+      ><label
+        >拒绝或下架原因（通过时可留空）<textarea
+          id="reason"
+          maxlength="500"
+          rows="3"
+        ></textarea>
+      </label>
+      <p id="decision-status" role="status"></p>
+      <div class="dialog-actions">
+        <button id="review-close">关闭</button><button id="reject">拒绝</button
+        ><button id="withdraw">下架</button
+        ><button id="approve" class="primary">审核通过并发布</button>
+      </div>
+    </dialog>
+    <div id="toast" class="toast" role="status" hidden></div>
+    <footer class="cloud-footer">
+      空致 KONz · 云备份　<span id="service-status">连接中</span>
+    </footer>
+  </body>
+</html>
