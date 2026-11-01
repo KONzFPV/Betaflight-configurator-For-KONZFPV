@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { GitHub } from "../src/github.mjs";
-import { appJwt } from "../src/credentials.mjs";
+import { appJwt, createAppManifest, setup } from "../src/credentials.mjs";
 import { generateKeyPairSync } from "node:crypto";
 const env = {
   GITHUB_OWNER: "owner",
@@ -91,4 +91,66 @@ test("GitHub App private keys work in PKCS1 and PKCS8 format", async () => {
       true,
     );
   }
+});
+
+test("manifest provides GitHub's required webhook URL even with deliveries disabled", () => {
+  const origin = "https://backup.example.test",
+    manifest = createAppManifest(origin);
+  assert.equal(manifest.url, origin);
+  assert.equal(manifest.hook_attributes.url, origin + "/api/github/webhook");
+  assert.equal(manifest.hook_attributes.active, false);
+  assert.equal(manifest.redirect_url, origin + "/setup/github/callback");
+  assert.deepEqual(manifest.callback_urls, [origin + "/auth/callback"]);
+  assert.deepEqual(manifest.default_permissions, { contents: "write" });
+  assert.deepEqual(manifest.default_events, []);
+  assert.throws(() => createAppManifest("http://backup.example.test"));
+});
+test("both setup entry points send a complete manifest to GitHub", async () => {
+  const origin = "https://backup.example.test";
+  const env = {
+    PUBLIC_ORIGIN: origin,
+    SETUP_TOKEN: "test-setup-only",
+    DB: {
+      prepare(sql) {
+        return {
+          bind() {
+            return this;
+          },
+          async first() {
+            return sql.includes("setup-launch") ? { state_hash: "test" } : null;
+          },
+          async run() {
+            return { success: true };
+          },
+        };
+      },
+    },
+  };
+  const htmlResponse = await setup(
+    new Request(origin + "/setup/start?token=test"),
+    env,
+    "/setup/start",
+  );
+  assert.equal(htmlResponse.status, 200);
+  const html = await htmlResponse.text();
+  const encoded = html.match(/name="manifest" value="([^"]+)"/)[1];
+  const submitted = JSON.parse(
+    encoded
+      .replace(/&quot;/g, '"')
+      .replace(/&lt;/g, "<")
+      .replace(/&amp;/g, "&"),
+  );
+  assert.equal(submitted.hook_attributes.url, origin + "/api/github/webhook");
+  const jsonResponse = await setup(
+    new Request(origin + "/api/setup/manifest", {
+      method: "POST",
+      headers: { authorization: "Bearer test-setup-only" },
+    }),
+    env,
+    "/api/setup/manifest",
+  );
+  assert.equal(
+    (await jsonResponse.json()).manifest.hook_attributes.url,
+    origin + "/api/github/webhook",
+  );
 });

@@ -176,6 +176,27 @@ export async function writeToken(env) {
   };
   return value.token;
 }
+export function createAppManifest(origin) {
+  const url = new URL(origin);
+  ensure(
+    url.protocol === "https:" && url.origin === origin,
+    "应用配置域名必须是 HTTPS origin",
+    400,
+  );
+  return {
+    name: "KONz Backup " + crypto.randomUUID().slice(0, 8),
+    url: origin,
+    redirect_url: origin + "/setup/github/callback",
+    callback_urls: [origin + "/auth/callback"],
+    setup_url: origin + "/setup/installed",
+    public: false,
+    // GitHub requires the webhook URL even when deliveries are disabled.
+    hook_attributes: { url: origin + "/api/github/webhook", active: false },
+    default_permissions: { contents: "write" },
+    default_events: [],
+    description: "KONz 飞控备份投稿与人工审核，只安装到两个专用备份仓库",
+  };
+}
 const setupCookie = (value, age) =>
   "__Host-konz-setup=" +
   value +
@@ -233,18 +254,7 @@ export async function setup(request, env, path) {
     await env.DB.prepare("INSERT INTO oauth_states VALUES(?,?,?)")
       .bind(await hash(state), "setup", now() + 600)
       .run();
-    const manifest = {
-      name: "KONz Backup " + crypto.randomUUID().slice(0, 8),
-      url: origin,
-      redirect_url: origin + "/setup/github/callback",
-      callback_urls: [origin + "/auth/callback"],
-      setup_url: origin + "/setup/installed",
-      public: false,
-      hook_attributes: { active: false },
-      default_permissions: { contents: "write" },
-      default_events: [],
-      description: "KONz 飞控备份投稿与人工审核，只安装到两个专用备份仓库",
-    };
+    const manifest = createAppManifest(origin);
     const escaped = JSON.stringify(manifest)
       .replace(/&/g, "&amp;")
       .replace(/"/g, "&quot;")
@@ -276,18 +286,7 @@ export async function setup(request, env, path) {
     await env.DB.prepare("INSERT INTO oauth_states VALUES(?,?,?)")
       .bind(await hash(state), "setup", now() + 600)
       .run();
-    const manifest = {
-      name: "KONz Backup " + crypto.randomUUID().slice(0, 8),
-      url: origin,
-      redirect_url: origin + "/setup/github/callback",
-      callback_urls: [origin + "/auth/callback"],
-      setup_url: origin + "/setup/installed",
-      public: false,
-      hook_attributes: { active: false },
-      default_permissions: { contents: "write" },
-      default_events: [],
-      description: "KONz 飞控备份投稿与人工审核，只安装到两个专用备份仓库",
-    };
+    const manifest = createAppManifest(origin);
     return Response.json(
       {
         manifest,
