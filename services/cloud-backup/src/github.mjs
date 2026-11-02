@@ -18,7 +18,7 @@ export class GitHub {
       },
       body: options.body ? JSON.stringify(options.body) : undefined,
       signal: AbortSignal.timeout(30000),
-      redirect: "error",
+      redirect: "manual",
     });
     if (response.status === 404 && options.optional) return null;
     if (!response.ok)
@@ -61,7 +61,7 @@ export class GitHub {
       },
       body: bytes,
       signal: AbortSignal.timeout(60000),
-      redirect: "error",
+      redirect: "manual",
     });
     if (!r.ok) throw new HttpError(502, "待审材料保存失败（" + r.status + "）");
     return r.json();
@@ -105,7 +105,7 @@ export class GitHub {
         502,
       );
       const file = await fetch(url, {
-        redirect: "error",
+        redirect: "manual",
         signal: AbortSignal.timeout(30000),
       });
       ensure(file.ok, "无法读取待审附件", 502);
@@ -131,7 +131,7 @@ export class GitHub {
         sha +
         "/" +
         path,
-      { signal: AbortSignal.timeout(30000), redirect: "error" },
+      { signal: AbortSignal.timeout(30000), redirect: "manual" },
     );
     ensure(r.ok, "已发布文件读取失败", 502);
     return new Uint8Array(await r.arrayBuffer());

@@ -134,7 +134,7 @@ async function appRequest(path, jwt, body) {
       ...(body ? { "Content-Type": "application/json" } : {}),
     },
     body: body ? JSON.stringify(body) : undefined,
-    redirect: "error",
+    redirect: "manual",
     signal: AbortSignal.timeout(20000),
   });
   ensure(r.ok, "GitHub App 尚未安装到两个专用仓库（" + r.status + "）", 503);
@@ -339,47 +339,95 @@ export async function setup(request, env, path) {
       "配置登录状态错误，请重新开始",
       400,
     );
-    const stored = await env.DB.prepare(
-      "DELETE FROM oauth_states WHERE state_hash=? AND verifier='setup' AND expires_at>? RETURNING state_hash",
-    )
-      .bind(await hash(state), now())
-      .first();
-    ensure(stored && !(await credentials(env)), "配置请求已过期或已连接", 409);
-    const r = await fetch(
-      "https://api.github.com/app-manifests/" +
-        encodeURIComponent(code) +
-        "/conversions",
-      {
-        method: "POST",
-        headers: {
-          Accept: "application/vnd.github+json",
-          "User-Agent": "KONz-Cloud-Backup",
-        },
-        signal: AbortSignal.timeout(20000),
-        redirect: "error",
-      },
-    );
-    const app = await r.json();
-    ensure(
-      r.ok &&
-        app.pem &&
-        app.client_secret &&
-        app.owner?.id === Number(env.ADMIN_GITHUB_ID),
-      "GitHub App 创建失败或账号不匹配",
-      403,
-    );
-    const value = {
-      appId: app.id,
-      clientId: app.client_id,
-      clientSecret: app.client_secret,
-      privateKey: app.pem,
-      slug: app.slug,
-    };
-    await env.DB.prepare(
-      "INSERT INTO settings(key,value) VALUES('github_app',?)",
-    )
-      .bind(await seal(env, value))
-      .run();
+    let stage = "state";
+    try {
+      const existing = await credentials(env);
+      if (!existing) {
+        const stored = await env.DB.prepare(
+          "SELECT state_hash FROM oauth_states WHERE state_hash=? AND verifier='setup' AND expires_at>?",
+        )
+          .bind(await hash(state), now())
+          .first();
+        ensure(stored, "配置请求已过期，请重新打开配置入口", 409);
+        stage = "github-request";
+        const r = await fetch(
+          "https://api.github.com/app-manifests/" +
+            encodeURIComponent(code) +
+            "/conversions",
+          {
+            method: "POST",
+            headers: {
+              Accept: "application/vnd.github+json",
+              "User-Agent": "KONz-Cloud-Backup",
+            },
+            signal: AbortSignal.timeout(20000),
+            redirect: "manual",
+          },
+        );
+        stage = "github-response";
+        const body = await r.text();
+        let app;
+        try {
+          app = JSON.parse(body);
+        } catch {
+          throw new HttpError(
+            502,
+            "GitHub 返回异常响应（HTTP " + r.status + "），请稍后重试",
+          );
+        }
+        ensure(r.ok, "GitHub 应用凭证兑换失败（HTTP " + r.status + "）", 502);
+        ensure(
+          app.pem &&
+            app.client_secret &&
+            app.owner?.id === Number(env.ADMIN_GITHUB_ID),
+          "GitHub App 创建失败或账号不匹配",
+          403,
+        );
+        stage = "encrypt";
+        const sealed = await seal(env, {
+          appId: app.id,
+          clientId: app.client_id,
+          clientSecret: app.client_secret,
+          privateKey: app.pem,
+          slug: app.slug,
+        });
+        stage = "store";
+        await env.DB.prepare(
+          "INSERT INTO settings(key,value) VALUES('github_app',?)",
+        )
+          .bind(sealed)
+          .run();
+      }
+      stage = "finish";
+      await env.DB.prepare(
+        "DELETE FROM oauth_states WHERE state_hash=? AND verifier='setup'",
+      )
+        .bind(await hash(state))
+        .run();
+    } catch (error) {
+      // Keep codes, cookies and credential response bodies out of diagnostics.
+      const detail = JSON.stringify({
+        stage,
+        name: error?.name,
+        at: now(),
+        message: String(error?.message || "")
+          .replaceAll(code, "[code]")
+          .replaceAll(state, "[state]")
+          .slice(0, 400),
+      });
+      await env.DB.prepare(
+        "INSERT OR REPLACE INTO settings(key,value) VALUES('setup_error_latest',?)",
+      )
+        .bind(detail)
+        .run()
+        .catch(() => {});
+      if (error instanceof HttpError) throw error;
+      throw new HttpError(
+        503,
+        "应用连接未完成（" + stage + "），请保留此页面并联系管理员",
+      );
+    }
+    const app = await credentials(env);
     return new Response(null, {
       status: 302,
       headers: {

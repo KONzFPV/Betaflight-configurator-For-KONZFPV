@@ -274,3 +274,116 @@ test("expired or unknown setup links still fail, while expired browser state can
     db.close();
   }
 });
+
+test("setup callback survives a transient exchange failure, stores encrypted credentials, and refreshes without exchanging twice", async () => {
+  const { db, binding } = setupDatabase(),
+    origin = "https://backup.example.test";
+  const env = {
+    PUBLIC_ORIGIN: origin,
+    SETUP_TOKEN: "test-token",
+    SESSION_SECRET: "s".repeat(40),
+    ADMIN_GITHUB_ID: "151951515",
+    DB: binding,
+  };
+  const originalFetch = globalThis.fetch;
+  let exchanges = 0;
+  try {
+    const ticket = await (
+      await setup(
+        new Request(origin + "/api/setup/link", {
+          method: "POST",
+          headers: { Authorization: "Bearer test-token" },
+        }),
+        env,
+        "/api/setup/link",
+      )
+    ).json();
+    const entry = await setup(new Request(ticket.url), env, "/setup/start");
+    const cookie = entry.headers.get("set-cookie").split(";")[0];
+    const state = (await entry.text()).match(/apps\/new\?state=([^"&]+)/)[1];
+    const request = () =>
+      new Request(
+        origin + "/setup/github/callback?state=" + state + "&code=test-code",
+        { headers: { Cookie: cookie } },
+      );
+    globalThis.fetch = async (url, options) => {
+      // Match the edge runtime, which rejects redirect:error before making a request.
+      assert.equal(options.redirect, "manual");
+      exchanges++;
+      if (exchanges === 1) throw new TypeError("temporary network failure");
+      return Response.json({
+        id: 42,
+        owner: { id: 151951515 },
+        pem: "private-test-material",
+        client_secret: "secret-test-material",
+        client_id: "test-id",
+        slug: "test-backup-app",
+      });
+    };
+    await assert.rejects(
+      setup(request(), env, "/setup/github/callback"),
+      /github-request/,
+    );
+    assert.equal(
+      db
+        .prepare(
+          "SELECT count(*) AS n FROM oauth_states WHERE verifier='setup'",
+        )
+        .get().n,
+      1,
+    );
+    const successful = await setup(request(), env, "/setup/github/callback");
+    assert.equal(successful.status, 302);
+    assert.equal(
+      successful.headers.get("location"),
+      "https://github.com/apps/test-backup-app/installations/new",
+    );
+    const stored = db
+      .prepare("SELECT value FROM settings WHERE key='github_app'")
+      .get().value;
+    assert.ok(
+      !stored.includes("private-test-material") &&
+        !stored.includes("secret-test-material"),
+    );
+    assert.equal(
+      db
+        .prepare(
+          "SELECT count(*) AS n FROM oauth_states WHERE verifier='setup'",
+        )
+        .get().n,
+      0,
+    );
+    assert.equal(
+      (await setup(request(), env, "/setup/github/callback")).status,
+      302,
+    );
+    assert.equal(exchanges, 2);
+  } finally {
+    globalThis.fetch = originalFetch;
+    db.close();
+  }
+});
+
+test("GitHub storage requests reject redirects without forwarding credentials", async () => {
+  const originalFetch = globalThis.fetch;
+  let calls = 0;
+  globalThis.fetch = async (url, options) => {
+    calls++;
+    assert.equal(options.redirect, "manual");
+    return new Response(null, {
+      status: 302,
+      headers: { location: "https://unexpected.example.test" },
+    });
+  };
+  try {
+    const gh = new GitHub(env);
+    await assert.rejects(gh.request("/repos/owner/inbox"), /302/);
+    await assert.rejects(
+      gh.upload(1, "test.jpg", new Uint8Array([1]), "image/jpeg"),
+      /302/,
+    );
+    assert.equal(calls, 2);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
